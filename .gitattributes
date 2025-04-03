@@ -1,0 +1,2 @@
+눈.jpeg filter=lfs diff=lfs merge=lfs -text
+IG.png filter=lfs diff=lfs merge=lfs -text
