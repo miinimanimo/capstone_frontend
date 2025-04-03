@@ -1,0 +1,109 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 70px;
+}
+
+.navbar-brand h1 {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  margin: 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.navbar-links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 2rem;
+}
+
+.navbar-links a {
+  text-decoration: none;
+  color: #34495e;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
+
+.navbar-links a:hover {
+  color: #3498db;
+  background-color: #f8f9fa;
+}
+
+.navbar-auth {
+  display: flex;
+  gap: 1rem;
+}
+
+.navbar-auth button {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.login-btn {
+  background-color: transparent;
+  color: #2c3e50;
+  border: 1px solid #2c3e50;
+}
+
+.login-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.signup-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.signup-btn:hover {
+  background-color: #2980b9;
+}
+
+/* PC 최적화 스타일 */
+@media (min-width: 1024px) {
+  .navbar {
+    padding: 1rem 6rem;
+    height: 80px;
+  }
+
+  .navbar-brand h1 {
+    font-size: 2.2rem;
+  }
+
+  .navbar-links {
+    gap: 4rem;
+  }
+
+  .navbar-links a {
+    font-size: 1.3rem;
+    padding: 0.6rem 1.2rem;
+  }
+
+  .navbar-auth {
+    gap: 1.5rem;
+  }
+
+  .navbar-auth button {
+    padding: 0.7rem 1.8rem;
+    font-size: 1.2rem;
+  }
+} 
