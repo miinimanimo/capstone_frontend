@@ -1,9 +1,8 @@
 .analysis-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  min-height: 100vh;
   display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: white;
 }
 
 .analysis-layout {
@@ -24,6 +23,7 @@
   height: fit-content;
   position: sticky;
   top: 80px;
+  background-color: white;
 }
 
 .step-item {
@@ -114,7 +114,7 @@
   flex: 1;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .step-content {
@@ -406,6 +406,7 @@
 .final-diagnosis-container {
   display: flex;
   gap: 2rem;
+  height: calc(100vh - 200px);
 }
 
 .final-diagnosis-left {
@@ -422,7 +423,8 @@
   width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  height: 100%;
 }
 
 .image-controls-top {
@@ -436,33 +438,36 @@
 
 .toggle-controls {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  width: 100%;
-  padding: 0.5rem;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
   background-color: rgba(0, 0, 0, 0.5);
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
   z-index: 10;
 }
 
-.toggle-label {
+.toggle-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.toggle-text {
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .toggle-switch {
   position: relative;
-  width: 48px;
-  height: 24px;
+  width: 40px;
+  height: 20px;
   background: #E5E7EB;
-  border-radius: 24px;
+  border-radius: 20px;
   cursor: pointer;
-  margin: 0 0.5rem;
   transition: background-color 0.3s ease;
 }
 
@@ -474,20 +479,15 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   background: white;
   border-radius: 50%;
   transition: all 0.3s ease;
 }
 
 .toggle-switch.active .toggle-slider {
-  left: calc(100% - 22px);
-}
-
-.toggle-text {
-  color: white;
-  font-size: 0.9rem;
+  left: calc(100% - 18px);
 }
 
 .size-control {
@@ -530,6 +530,11 @@
   position: relative;
   overflow: hidden;
   cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .main-eye-image.dragging {
@@ -541,39 +546,57 @@
   height: 100%;
   object-fit: contain;
   transition: transform 0.2s;
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   user-select: none;
   -webkit-user-drag: none;
+  transform-origin: center center;
+}
+
+.main-eye-image canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  z-index: 1;
+  cursor: crosshair;
 }
 
 .severity-confirmation {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .severity-confirmation h4 {
-  color: #2c3e50;
-  font-size: 1.1rem;
-  margin: 0 0 1rem 0;
+  color: #111827;
+  font-size: 0.875rem;
+  margin: 0;
+  font-weight: 600;
 }
 
 .severity-options {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .severity-option {
   display: flex;
   align-items: center;
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid #E5E7EB;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #2c3e50;
   white-space: nowrap;
   overflow: hidden;
@@ -595,167 +618,165 @@
 }
 
 .lesion-confirmation {
-  margin-top: 2rem;
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.lesion-confirmation h4 {
+  color: #111827;
+  font-size: 0.875rem;
+  margin: 0;
+  font-weight: 600;
 }
 
 .lesion-guide {
   color: #6B7280;
-  margin: 0.5rem 0 1rem;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  margin: 0;
 }
 
 .lesion-types {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.lesion-types::-webkit-scrollbar {
+  width: 4px;
+}
+
+.lesion-types::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.lesion-types::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.lesion-types::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
 }
 
 .lesion-type {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 12px;
+  margin-bottom: 8px;
   border: 1px solid #E5E7EB;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.9rem;
-  color: #2c3e50;
+  background-color: white;
+  position: relative;
 }
 
 .lesion-type:hover {
   border-color: #4B19E5;
+  background-color: rgba(75, 25, 229, 0.05);
 }
 
-.lesion-type.selected {
-  background-color: #F5F3FF;
-  border-color: #4B19E5;
+.lesion-type.active {
+  border-width: 2px;
+  background-color: rgba(75, 25, 229, 0.1);
 }
 
-.color-dot {
+.lesion-type .color-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  margin-right: 0.75rem;
-  flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .lesion-type.red .color-dot {
-  background-color: #EF4444;
+  background-color: rgb(239, 68, 68);
+}
+
+.lesion-type.purple .color-dot {
+  background-color: rgb(147, 51, 234);
+}
+
+.lesion-type.pink .color-dot {
+  background-color: rgb(236, 72, 153);
 }
 
 .lesion-type.green .color-dot {
-  background-color: #10B981;
+  background-color: rgb(16, 185, 129);
 }
 
 .lesion-type.blue .color-dot {
-  background-color: #3B82F6;
+  background-color: rgb(59, 130, 246);
 }
 
-.lesion-type.yellow .color-dot {
-  background-color: #F59E0B;
+.lesion-type.sky .color-dot {
+  background-color: rgb(0, 150, 199);
+}
+
+.lesion-type.red.active {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgb(239, 68, 68);
+}
+
+.lesion-type.purple.active {
+  background-color: rgba(147, 51, 234, 0.1);
+  border-color: rgb(147, 51, 234);
+}
+
+.lesion-type.pink.active {
+  background-color: rgba(236, 72, 153, 0.1);
+  border-color: rgb(236, 72, 153);
+}
+
+.lesion-type.green.active {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgb(16, 185, 129);
+}
+
+.lesion-type.blue.active {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgb(59, 130, 246);
+}
+
+.lesion-type.sky.active {
+  background-color: rgba(0, 150, 199, 0.1);
+  border-color: rgb(0, 150, 199);
+}
+
+.segment-count {
+  margin-left: auto;
+  font-size: 14px;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .add-lesion-button {
-  margin-top: 1rem;
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.5rem;
   background-color: #4B19E5;
   color: white;
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .add-lesion-button:hover {
   background-color: #3B0FB2;
-}
-
-/* 모달 스타일 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 400px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  margin-bottom: 1rem;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1.2rem;
-}
-
-.modal-body {
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.modal-button {
-  padding: 0.6rem 1.2rem;
-  background: #4B19E5;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.modal-button:hover {
-  background: #3c14b8;
-}
-
-.image-controls {
-  margin-bottom: 1rem;
-}
-
-.image-controls h3 {
-  margin-bottom: 0.5rem;
-  color: #2c3e50;
-}
-
-.image-controls .eye-image {
-  width: 100%;
-  max-height: 150px;
-  margin-bottom: 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.eye-image {
-  width: 100%;
-  aspect-ratio: 1;
-  background: #f8f9fa;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e0e0e0;
 }
 
 /* 기존 스타일 유지 */
