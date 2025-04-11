@@ -589,7 +589,7 @@ const Analysis: React.FC = () => {
 
                 <div className="interest-region-container">
                   <h3>Interest Region</h3>
-                  <img src="/images/IG.png" alt="Interest Region" />
+                  <img src="/images/ig.png" alt="Interest Region" />
                 </div>
               </div>
 
