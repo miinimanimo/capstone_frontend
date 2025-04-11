@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './Analysis.css';
-import IGImage from '../../assets/IG.png';
-import EyeImage from '../../assets/눈.jpeg';
 
 const Analysis: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -591,7 +589,7 @@ const Analysis: React.FC = () => {
 
                 <div className="interest-region-container">
                   <h3>Interest Region</h3>
-                  <img src={IGImage} alt="Interest Region" />
+                  <img src="/assets/IG.png" alt="Interest Region" />
                 </div>
               </div>
 
@@ -621,7 +619,7 @@ const Analysis: React.FC = () => {
                 </div>
                 <div className="detection-image">
                   <img
-                    src={EyeImage}
+                    src="/assets/눈.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                   />
                 </div>
@@ -702,7 +700,7 @@ const Analysis: React.FC = () => {
                   onWheel={handleWheel}
                 >
                   <img
-                    src={EyeImage}
+                    src="/assets/눈.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                     style={{
                       transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
