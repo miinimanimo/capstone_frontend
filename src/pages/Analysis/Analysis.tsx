@@ -589,7 +589,7 @@ const Analysis: React.FC = () => {
 
                 <div className="interest-region-container">
                   <h3>Interest Region</h3>
-                  <img src="/assets/IG.png" alt="Interest Region" />
+                  <img src="/images/IG.png" alt="Interest Region" />
                 </div>
               </div>
 
@@ -619,7 +619,7 @@ const Analysis: React.FC = () => {
                 </div>
                 <div className="detection-image">
                   <img
-                    src="/assets/눈.jpeg"
+                    src="/images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                   />
                 </div>
@@ -700,7 +700,7 @@ const Analysis: React.FC = () => {
                   onWheel={handleWheel}
                 >
                   <img
-                    src="/assets/눈.jpeg"
+                    src="/images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                     style={{
                       transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
