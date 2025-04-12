@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './Analysis.css';
 
+interface Patient {
+  name: string;
+  code: string;
+}
+
 const Analysis: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [eyeStatus, setEyeStatus] = useState({
+    step1: {
+      left: false,
+      right: false,
+    },
     step2: {
       left: false,
       right: false,
@@ -36,6 +45,14 @@ const Analysis: React.FC = () => {
   const [selectedPixels, setSelectedPixels] = useState<{[key: string]: number[]}>({});
   const [currentLesion, setCurrentLesion] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 환자 검색 관련 상태
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  
+  // 이미지 업로드 관련 상태
+  const [leftEyeImage, setLeftEyeImage] = useState<string | null>(null);
+  const [rightEyeImage, setRightEyeImage] = useState<string | null>(null);
 
   // 1) 사이드바 단계 정의
   const steps = [
@@ -390,6 +407,7 @@ const Analysis: React.FC = () => {
           </div>
         );
       case 2:
+        const step2Confirmed = eyeStatus.step2.left && eyeStatus.step2.right;
         return (
           <div className="step-buttons">
             <button className="step-button prev" onClick={handlePrev}>
@@ -409,19 +427,17 @@ const Analysis: React.FC = () => {
                 우안 확인
               </button>
             </div>
-            <button
-              className={`step-button next ${
-                eyeStatus.step2.left && eyeStatus.step2.right ? '' : 'disabled'
-              }`}
+            <button 
+              className={`step-button next ${!step2Confirmed ? 'disabled' : ''}`} 
               onClick={handleNext}
-              disabled={!eyeStatus.step2.left || !eyeStatus.step2.right}
+              disabled={!step2Confirmed}
             >
               다음 단계
             </button>
           </div>
         );
       case 3:
-        const allConfirmed = eyeStatus.step3.left && eyeStatus.step3.right;
+        const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
         return (
           <div className="step-buttons">
             <button className="step-button prev" onClick={handlePrev}>
@@ -441,17 +457,56 @@ const Analysis: React.FC = () => {
                 우안 확인
               </button>
             </div>
-            {allConfirmed ? (
-              <button className="step-button complete">완료하기</button>
-            ) : (
-              <button className="step-button next disabled" disabled>
-                완료하기
-              </button>
-            )}
+            <button 
+              className={`step-button next ${!step3Confirmed ? 'disabled' : ''}`}
+              onClick={handleNext}
+              disabled={!step3Confirmed}
+            >
+              완료하기
+            </button>
           </div>
         );
       default:
         return null;
+    }
+  };
+
+  // 환자 검색 핸들러
+  const handleSearch = () => {
+    // 검색어 입력 여부와 관계없이 환자 정보 표시
+    setSelectedPatient({
+      name: '장석민',
+      code: 'jg0103'
+    });
+  };
+
+  // 이미지 업로드 핸들러
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, eye: 'left' | 'right') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (eye === 'left') {
+          setLeftEyeImage(reader.result as string);
+          setEyeStatus(prev => ({
+            ...prev,
+            step1: {
+              ...prev.step1,
+              left: true
+            }
+          }));
+        } else {
+          setRightEyeImage(reader.result as string);
+          setEyeStatus(prev => ({
+            ...prev,
+            step1: {
+              ...prev.step1,
+              right: true
+            }
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -462,57 +517,129 @@ const Analysis: React.FC = () => {
         return (
           <div className="step-content">
             <div className="patient-info-header">
-              <div className="info-group">
-                <h2>환자 정보</h2>
-              </div>
-              <div className="step-buttons">
-                <button className="step-button next" onClick={handleNext}>
-                  다음 단계
+              {!selectedPatient ? (
+                <h2>환자 검색하기</h2>
+              ) : null}
+              {!selectedPatient && (
+                <div className="search-container">
+                  <div className="search-icon">
+                    <svg width="76" height="76" viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M48.3964 21.9224C48.8101 21.5086 49.0426 20.9475 49.0426 20.3624C49.0426 19.7773 48.8101 19.2161 48.3964 18.8024C47.9827 18.3887 47.4215 18.1563 46.8364 18.1562C46.2513 18.1562 45.6902 18.3887 45.2764 18.8024L24.8028 39.2805L17.5493 32.0226C17.3445 31.8177 17.1013 31.6552 16.8336 31.5444C16.5659 31.4335 16.2791 31.3764 15.9893 31.3764C15.6996 31.3764 15.4128 31.4335 15.1451 31.5444C14.8774 31.6552 14.6342 31.8177 14.4294 32.0226C14.2245 32.2274 14.062 32.4707 13.9511 32.7383C13.8403 33.006 13.7832 33.2929 13.7832 33.5826C13.7832 33.8723 13.8403 34.1592 13.9511 34.4268C14.062 34.6945 14.2245 34.9377 14.4294 35.1426L23.2428 43.956C23.4475 44.1612 23.6906 44.324 23.9583 44.4351C24.226 44.5461 24.513 44.6033 24.8028 44.6033C25.0926 44.6033 25.3796 44.5461 25.6473 44.4351C25.915 44.324 26.1581 44.1612 26.3628 43.956L48.3964 21.9224Z" fill="#4200FF"/>
+                      <path d="M12.3872 0.53125C10.8351 0.53125 9.29825 0.836954 7.86432 1.43091C6.43039 2.02486 5.1275 2.89543 4.03002 3.99291C1.81355 6.20937 0.568359 9.21554 0.568359 12.3501V50.4066C0.568359 56.9373 5.85643 62.2254 12.3872 62.2254H40.4492C40.7797 60.5949 41.4672 59.0966 42.4322 57.8187H12.3872C10.4214 57.8187 8.53608 57.0378 7.14604 55.6477C5.756 54.2577 4.97508 52.3724 4.97508 50.4066V12.3501C4.97508 8.25624 8.29335 4.93797 12.3872 4.93797H50.4437C54.5375 4.93797 57.8558 8.25624 57.8558 12.3501V31.5634C59.3145 31.3185 60.8038 31.3185 62.2625 31.5634V12.3501C62.2625 5.81932 56.9744 0.53125 50.4437 0.53125H12.3872Z" fill="#4200FF"/>
+                      <path d="M68.8737 44.5986C68.8737 46.9361 67.9451 49.1778 66.2923 50.8307C64.6395 52.4835 62.3977 53.4121 60.0603 53.4121C57.7228 53.4121 55.481 52.4835 53.8282 50.8307C52.1754 49.1778 51.2468 46.9361 51.2468 44.5986C51.2468 42.2611 52.1754 40.0194 53.8282 38.3666C55.481 36.7137 57.7228 35.7852 60.0603 35.7852C62.3977 35.7852 64.6395 36.7137 66.2923 38.3666C67.9451 40.0194 68.8737 42.2611 68.8737 44.5986ZM75.4838 64.4289C75.4838 69.9152 71.0771 75.4457 60.0603 75.4457C49.0434 75.4457 44.6367 69.9373 44.6367 64.4289C44.6367 62.6758 45.3331 60.9945 46.5728 59.7548C47.8124 58.5152 49.4937 57.8188 51.2468 57.8188H68.8737C70.6268 57.8188 72.3081 58.5152 73.5477 59.7548C74.7874 60.9945 75.4838 62.6758 75.4838 64.4289Z" fill="#4200FF"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="환자 성명 or 환자 코드"
+                    className="search-input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <button className="search-button" onClick={handleSearch}>검색하기</button>
+                </div>
+              )}
+            </div>
+
+            {selectedPatient && (
+              <div className="selected-patient-info">
+                <div className="info-card">
+                  <div className="info-icon">
+                  <svg width="76" height="76" viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M48.3964 21.9224C48.8101 21.5086 49.0426 20.9475 49.0426 20.3624C49.0426 19.7773 48.8101 19.2161 48.3964 18.8024C47.9827 18.3887 47.4215 18.1563 46.8364 18.1562C46.2513 18.1562 45.6902 18.3887 45.2764 18.8024L24.8028 39.2805L17.5493 32.0226C17.3445 31.8177 17.1013 31.6552 16.8336 31.5444C16.5659 31.4335 16.2791 31.3764 15.9893 31.3764C15.6996 31.3764 15.4128 31.4335 15.1451 31.5444C14.8774 31.6552 14.6342 31.8177 14.4294 32.0226C14.2245 32.2274 14.062 32.4707 13.9511 32.7383C13.8403 33.006 13.7832 33.2929 13.7832 33.5826C13.7832 33.8723 13.8403 34.1592 13.9511 34.4268C14.062 34.6945 14.2245 34.9377 14.4294 35.1426L23.2428 43.956C23.4475 44.1612 23.6906 44.324 23.9583 44.4351C24.226 44.5461 24.513 44.6033 24.8028 44.6033C25.0926 44.6033 25.3796 44.5461 25.6473 44.4351C25.915 44.324 26.1581 44.1612 26.3628 43.956L48.3964 21.9224Z" fill="#4200FF"/>
+                    <path d="M12.3872 0.53125C10.8351 0.53125 9.29825 0.836954 7.86432 1.43091C6.43039 2.02486 5.1275 2.89543 4.03002 3.99291C1.81355 6.20937 0.568359 9.21554 0.568359 12.3501V50.4066C0.568359 56.9373 5.85643 62.2254 12.3872 62.2254H40.4492C40.7797 60.5949 41.4672 59.0966 42.4322 57.8187H12.3872C10.4214 57.8187 8.53608 57.0378 7.14604 55.6477C5.756 54.2577 4.97508 52.3724 4.97508 50.4066V12.3501C4.97508 8.25624 8.29335 4.93797 12.3872 4.93797H50.4437C54.5375 4.93797 57.8558 8.25624 57.8558 12.3501V31.5634C59.3145 31.3185 60.8038 31.3185 62.2625 31.5634V12.3501C62.2625 5.81932 56.9744 0.53125 50.4437 0.53125H12.3872Z" fill="#4200FF"/>
+                    <path d="M68.8737 44.5986C68.8737 46.9361 67.9451 49.1778 66.2923 50.8307C64.6395 52.4835 62.3977 53.4121 60.0603 53.4121C57.7228 53.4121 55.481 52.4835 53.8282 50.8307C52.1754 49.1778 51.2468 46.9361 51.2468 44.5986C51.2468 42.2611 52.1754 40.0194 53.8282 38.3666C55.481 36.7137 57.7228 35.7852 60.0603 35.7852C62.3977 35.7852 64.6395 36.7137 66.2923 38.3666C67.9451 40.0194 68.8737 42.2611 68.8737 44.5986ZM75.4838 64.4289C75.4838 69.9152 71.0771 75.4457 60.0603 75.4457C49.0434 75.4457 44.6367 69.9373 44.6367 64.4289C44.6367 62.6758 45.3331 60.9945 46.5728 59.7548C47.8124 58.5152 49.4937 57.8188 51.2468 57.8188H68.8737C70.6268 57.8188 72.3081 58.5152 73.5477 59.7548C74.7874 60.9945 75.4838 62.6758 75.4838 64.4289Z" fill="#4200FF"/>
+                  </svg>
+                  </div>
+                  <div className="info-text">
+                    <span className="date">2025년 2월 3일</span>
+                    <span className="divider">|</span>
+                    <span className="patient-name">환자 성명: 장석민</span>
+                    <span className="divider">|</span>
+                    <span className="patient-code">환자 코드: jg0103</span>
+                  </div>
+                </div>
+
+                <div className="upload-section">
+                  <div className="upload-container">
+                    <span className="upload-label">왼쪽 안저 사진</span>
+                    <div className="upload-box">
+                      {leftEyeImage ? (
+                        <img src={leftEyeImage} alt="왼쪽 안저 사진" />
+                      ) : (
+                        <div className="upload-placeholder">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <label className="upload-button">
+                      업로드하기
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, 'left')}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="upload-container">
+                    <span className="upload-label">오른쪽 안저 사진</span>
+                    <div className="upload-box">
+                      {rightEyeImage ? (
+                        <img src={rightEyeImage} alt="오른쪽 안저 사진" />
+                      ) : (
+                        <div className="upload-placeholder">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <label className="upload-button">
+                      업로드하기
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, 'right')}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  className="analyze-button"
+                  onClick={() => {
+                    if (leftEyeImage && rightEyeImage) {
+                      setCurrentStep(2);
+                    }
+                  }}
+                  disabled={!leftEyeImage || !rightEyeImage}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20.9641 11.9336C20.9641 16.9555 16.9238 21 11.9047 21C6.88571 21 2.84546 16.9555 2.84546 11.9336C2.84546 6.91174 6.88571 2.86719 11.9047 2.86719C16.9238 2.86719 20.9641 6.91174 20.9641 11.9336Z" stroke="white" strokeWidth="1.5"/>
+                    <path d="M15.4039 14.3974L15.2655 14.5533C15.1348 14.7092 14.9117 14.7638 14.7269 14.6805L13.3499 14.1125C12.8417 13.9177 12.4527 13.4591 12.334 12.9122C12.3183 12.8083 12.2547 12.7171 12.164 12.6665L8.47036 10.634C8.33446 10.5527 8.16559 10.5904 8.06863 10.7173L7.01672 12.1028C6.93133 12.2133 6.7842 12.2563 6.65456 12.202L3.95489 10.947C3.75693 10.8577 3.6949 10.6088 3.81508 10.4373L7.9465 4.61107C8.06039 4.4473 8.27989 4.40253 8.45505 4.51558L15.4039 8.89249C16.1994 9.39131 16.1994 10.614 15.4039 11.1128L12.72 12.823C12.5996 12.9002 12.5516 13.0546 12.6011 13.1897L13.5132 16.027C13.5746 16.195 13.522 16.3824 13.3818 16.4991L11.9265 17.7179C11.7175 17.8938 11.3929 17.7593 11.3595 17.4915L11.0779 15.1801C11.0509 14.9792 10.8627 14.8311 10.6615 14.8311H9.25758C9.08453 14.8311 8.94551 14.9448 8.89927 15.1089L8.34944 17.1047C8.29375 17.3041 8.09579 17.4366 7.89469 17.3997L6.2835 17.1081C6.06411 17.0672 5.94603 16.8337 6.06307 16.6478L7.66799 14.1908C7.76232 14.036 7.7299 13.8332 7.58769 13.719L3.73076 10.6701" stroke="white" strokeWidth="1.5"/>
+                  </svg>
+                  AI 분석하기
                 </button>
               </div>
-            </div>
-            <div className="search-container">
-              <div className="search-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M21 21L16.65 16.65"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder="환자 성명 or 환자 코드"
-                className="search-input"
-              />
-              <button className="search-button">검색하기</button>
-            </div>
+            )}
           </div>
         );
       case 2:
+        const step2Confirmed = eyeStatus.step2.left && eyeStatus.step2.right;
         return (
-          <div className="step-content">
+          <div className="step-content step-2">
             <div className="patient-info-header">
               <div className="info-group">
                 <div className="info-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M20 6L9 17L4 12"
-                      stroke="#4B19E5"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                  <svg width="24" height="24" viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M48.3964 21.9224C48.8101 21.5086 49.0426 20.9475 49.0426 20.3624C49.0426 19.7773 48.8101 19.2161 48.3964 18.8024C47.9827 18.3887 47.4215 18.1563 46.8364 18.1562C46.2513 18.1562 45.6902 18.3887 45.2764 18.8024L24.8028 39.2805L17.5493 32.0226C17.3445 31.8177 17.1013 31.6552 16.8336 31.5444C16.5659 31.4335 16.2791 31.3764 15.9893 31.3764C15.6996 31.3764 15.4128 31.4335 15.1451 31.5444C14.8774 31.6552 14.6342 31.8177 14.4294 32.0226C14.2245 32.2274 14.062 32.4707 13.9511 32.7383C13.8403 33.006 13.7832 33.2929 13.7832 33.5826C13.7832 33.8723 13.8403 34.1592 13.9511 34.4268C14.062 34.6945 14.2245 34.9377 14.4294 35.1426L23.2428 43.956C23.4475 44.1612 23.6906 44.324 23.9583 44.4351C24.226 44.5461 24.513 44.6033 24.8028 44.6033C25.0926 44.6033 25.3796 44.5461 25.6473 44.4351C25.915 44.324 26.1581 44.1612 26.3628 43.956L48.3964 21.9224Z" fill="#4200FF"/>
+                    <path d="M12.3872 0.53125C10.8351 0.53125 9.29825 0.836954 7.86432 1.43091C6.43039 2.02486 5.1275 2.89543 4.03002 3.99291C1.81355 6.20937 0.568359 9.21554 0.568359 12.3501V50.4066C0.568359 56.9373 5.85643 62.2254 12.3872 62.2254H40.4492C40.7797 60.5949 41.4672 59.0966 42.4322 57.8187H12.3872C10.4214 57.8187 8.53608 57.0378 7.14604 55.6477C5.756 54.2577 4.97508 52.3724 4.97508 50.4066V12.3501C4.97508 8.25624 8.29335 4.93797 12.3872 4.93797H50.4437C54.5375 4.93797 57.8558 8.25624 57.8558 12.3501V31.5634C59.3145 31.3185 60.8038 31.3185 62.2625 31.5634V12.3501C62.2625 5.81932 56.9744 0.53125 50.4437 0.53125H12.3872Z" fill="#4200FF"/>
+                    <path d="M68.8737 44.5986C68.8737 46.9361 67.9451 49.1778 66.2923 50.8307C64.6395 52.4835 62.3977 53.4121 60.0603 53.4121C57.7228 53.4121 55.481 52.4835 53.8282 50.8307C52.1754 49.1778 51.2468 46.9361 51.2468 44.5986C51.2468 42.2611 52.1754 40.0194 53.8282 38.3666C55.481 36.7137 57.7228 35.7852 60.0603 35.7852C62.3977 35.7852 64.6395 36.7137 66.2923 38.3666C67.9451 40.0194 68.8737 42.2611 68.8737 44.5986ZM75.4838 64.4289C75.4838 69.9152 71.0771 75.4457 60.0603 75.4457C49.0434 75.4457 44.6367 69.9373 44.6367 64.4289C44.6367 62.6758 45.3331 60.9945 46.5728 59.7548C47.8124 58.5152 49.4937 57.8188 51.2468 57.8188H68.8737C70.6268 57.8188 72.3081 58.5152 73.5477 59.7548C74.7874 60.9945 75.4838 62.6758 75.4838 64.4289Z" fill="#4200FF"/>
                   </svg>
                 </div>
                 <div className="info-text">
@@ -541,12 +668,10 @@ const Analysis: React.FC = () => {
                     우안 확인
                   </button>
                 </div>
-                <button
-                  className={`step-button next ${
-                    eyeStatus.step2.left && eyeStatus.step2.right ? '' : 'disabled'
-                  }`}
+                <button 
+                  className={`step-button next ${!step2Confirmed ? 'disabled' : ''}`} 
                   onClick={handleNext}
-                  disabled={!eyeStatus.step2.left || !eyeStatus.step2.right}
+                  disabled={!step2Confirmed}
                 >
                   다음 단계
                 </button>
@@ -628,19 +753,16 @@ const Analysis: React.FC = () => {
           </div>
         );
       case 3:
+        const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
         return (
-          <div className="step-content">
+          <div className="step-content step-3">
             <div className="patient-info-header">
               <div className="info-group">
                 <div className="info-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M20 6L9 17L4 12"
-                      stroke="#4B19E5"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                  <svg width="24" height="24" viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M48.3964 21.9224C48.8101 21.5086 49.0426 20.9475 49.0426 20.3624C49.0426 19.7773 48.8101 19.2161 48.3964 18.8024C47.9827 18.3887 47.4215 18.1563 46.8364 18.1562C46.2513 18.1562 45.6902 18.3887 45.2764 18.8024L24.8028 39.2805L17.5493 32.0226C17.3445 31.8177 17.1013 31.6552 16.8336 31.5444C16.5659 31.4335 16.2791 31.3764 15.9893 31.3764C15.6996 31.3764 15.4128 31.4335 15.1451 31.5444C14.8774 31.6552 14.6342 31.8177 14.4294 32.0226C14.2245 32.2274 14.062 32.4707 13.9511 32.7383C13.8403 33.006 13.7832 33.2929 13.7832 33.5826C13.7832 33.8723 13.8403 34.1592 13.9511 34.4268C14.062 34.6945 14.2245 34.9377 14.4294 35.1426L23.2428 43.956C23.4475 44.1612 23.6906 44.324 23.9583 44.4351C24.226 44.5461 24.513 44.6033 24.8028 44.6033C25.0926 44.6033 25.3796 44.5461 25.6473 44.4351C25.915 44.324 26.1581 44.1612 26.3628 43.956L48.3964 21.9224Z" fill="#4200FF"/>
+                    <path d="M12.3872 0.53125C10.8351 0.53125 9.29825 0.836954 7.86432 1.43091C6.43039 2.02486 5.1275 2.89543 4.03002 3.99291C1.81355 6.20937 0.568359 9.21554 0.568359 12.3501V50.4066C0.568359 56.9373 5.85643 62.2254 12.3872 62.2254H40.4492C40.7797 60.5949 41.4672 59.0966 42.4322 57.8187H12.3872C10.4214 57.8187 8.53608 57.0378 7.14604 55.6477C5.756 54.2577 4.97508 52.3724 4.97508 50.4066V12.3501C4.97508 8.25624 8.29335 4.93797 12.3872 4.93797H50.4437C54.5375 4.93797 57.8558 8.25624 57.8558 12.3501V31.5634C59.3145 31.3185 60.8038 31.3185 62.2625 31.5634V12.3501C62.2625 5.81932 56.9744 0.53125 50.4437 0.53125H12.3872Z" fill="#4200FF"/>
+                    <path d="M68.8737 44.5986C68.8737 46.9361 67.9451 49.1778 66.2923 50.8307C64.6395 52.4835 62.3977 53.4121 60.0603 53.4121C57.7228 53.4121 55.481 52.4835 53.8282 50.8307C52.1754 49.1778 51.2468 46.9361 51.2468 44.5986C51.2468 42.2611 52.1754 40.0194 53.8282 38.3666C55.481 36.7137 57.7228 35.7852 60.0603 35.7852C62.3977 35.7852 64.6395 36.7137 66.2923 38.3666C67.9451 40.0194 68.8737 42.2611 68.8737 44.5986ZM75.4838 64.4289C75.4838 69.9152 71.0771 75.4457 60.0603 75.4457C49.0434 75.4457 44.6367 69.9373 44.6367 64.4289C44.6367 62.6758 45.3331 60.9945 46.5728 59.7548C47.8124 58.5152 49.4937 57.8188 51.2468 57.8188H68.8737C70.6268 57.8188 72.3081 58.5152 73.5477 59.7548C74.7874 60.9945 75.4838 62.6758 75.4838 64.4289Z" fill="#4200FF"/>
                   </svg>
                 </div>
                 <div className="info-text">
@@ -651,7 +773,32 @@ const Analysis: React.FC = () => {
                   <span className="patient-code">환자 코드: jg0103</span>
                 </div>
               </div>
-              {renderStepButtons()}
+              <div className="step-buttons">
+                <button className="step-button prev" onClick={handlePrev}>
+                  이전 단계
+                </button>
+                <div className="eye-confirm-buttons">
+                  <button
+                    className={`eye-button ${eyeStatus.step3.left ? 'confirmed' : ''}`}
+                    onClick={() => handleEyeConfirm(3, 'left')}
+                  >
+                    좌안 확인
+                  </button>
+                  <button
+                    className={`eye-button ${eyeStatus.step3.right ? 'confirmed' : ''}`}
+                    onClick={() => handleEyeConfirm(3, 'right')}
+                  >
+                    우안 확인
+                  </button>
+                </div>
+                <button 
+                  className={`step-button next ${!step3Confirmed ? 'disabled' : ''}`}
+                  onClick={handleNext}
+                  disabled={!step3Confirmed}
+                >
+                  완료하기
+                </button>
+              </div>
             </div>
 
             <div className="final-diagnosis-container">
