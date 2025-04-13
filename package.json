@@ -2,7 +2,7 @@
   "name": "capstone_frontend",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://miin-jang.github.io/capstone_frontend",
+  "homepage": "https://miinimanimo.github.io/capstone_frontend",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
