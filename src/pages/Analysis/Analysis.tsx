@@ -744,17 +744,13 @@ const Analysis: React.FC = () => {
                 </div>
                 <div className="detection-image">
                   <img
-                    src="./images/eye.jpeg"
+                    src={process.env.PUBLIC_URL + '/images/eye.jpeg'}
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                     style={{
                       transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
                       transformOrigin: 'center center'
                     }}
                     draggable={false}
-                    onError={(e) => {
-                      console.error('이미지 로드 실패:', e);
-                      e.currentTarget.src = './images/eye.jpeg';
-                    }}
                   />
                   <canvas
                     ref={canvasRef}
@@ -870,17 +866,13 @@ const Analysis: React.FC = () => {
                   onWheel={handleWheel}
                 >
                   <img
-                    src="./images/eye.jpeg"
+                    src={process.env.PUBLIC_URL + '/images/eye.jpeg'}
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                     style={{
                       transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
                       transformOrigin: 'center center'
                     }}
                     draggable={false}
-                    onError={(e) => {
-                      console.error('이미지 로드 실패:', e);
-                      e.currentTarget.src = './images/eye.jpeg';
-                    }}
                   />
                   <canvas
                     ref={canvasRef}
