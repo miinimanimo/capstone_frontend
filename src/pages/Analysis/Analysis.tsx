@@ -216,8 +216,8 @@ const Analysis: React.FC = () => {
 
         const delta = e.deltaY * -0.01;
         setImageSize(prevSize => {
-          const newSize = prevSize + (delta * 10);
-          return Math.max(50, Math.round(newSize));
+          const newSize = prevSize + (delta * 5); // 확대/축소 속도 조절
+          return Math.max(50, Math.round(newSize)); // 최소 50%로만 제한
         });
       }
     }
@@ -229,26 +229,23 @@ const Analysis: React.FC = () => {
     if (!mainEyeImage || currentStep !== 3) return;
 
     const preventScroll = (e: WheelEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+      const rect = mainEyeImage.getBoundingClientRect();
+      const isInside = 
+        e.clientX >= rect.left && 
+        e.clientX <= rect.right && 
+        e.clientY >= rect.top && 
+        e.clientY <= rect.bottom;
+
+      if (isInside) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     };
 
     mainEyeImage.addEventListener('wheel', preventScroll, { passive: false });
 
-    // 트랙패드 핀치 줌 방지
-    const preventGesture = (e: Event) => {
-      e.preventDefault();
-    };
-    
-    mainEyeImage.addEventListener('gesturestart', preventGesture, { passive: false });
-    mainEyeImage.addEventListener('gesturechange', preventGesture, { passive: false });
-    mainEyeImage.addEventListener('gestureend', preventGesture, { passive: false });
-
     return () => {
       mainEyeImage.removeEventListener('wheel', preventScroll);
-      mainEyeImage.removeEventListener('gesturestart', preventGesture);
-      mainEyeImage.removeEventListener('gesturechange', preventGesture);
-      mainEyeImage.removeEventListener('gestureend', preventGesture);
     };
   }, [currentStep]);
 
