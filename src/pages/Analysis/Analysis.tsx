@@ -31,8 +31,8 @@ const Analysis: React.FC = () => {
   const [startPosition, setStartPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [imagePosition, setImagePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   
-  const [isAIDetectionOn, setIsAIDetectionOn] = useState<boolean>(true);
-  const [isGridOn, setIsGridOn] = useState<boolean>(false);
+  const [showGrid, setShowGrid] = useState<boolean>(false);
+  const [showAIDetection, setShowAIDetection] = useState<boolean>(false);
   const imageRef = React.useRef<HTMLDivElement>(null);
 
   // 중증도 선택
@@ -266,7 +266,7 @@ const Analysis: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    if (!isGridOn) {
+    if (!showGrid) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
@@ -332,11 +332,11 @@ const Analysis: React.FC = () => {
       ctx.lineTo(canvas.width, i * cellHeight);
       ctx.stroke();
     }
-  }, [selectedPixels, isGridOn, currentLesion]);
+  }, [selectedPixels, showGrid, currentLesion]);
 
   // 픽셀 선택 처리
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!currentLesion || !isGridOn) return;
+    if (!currentLesion || !showGrid) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -371,7 +371,7 @@ const Analysis: React.FC = () => {
       
       return newPixels;
     });
-  }, [currentLesion, isGridOn]);
+  }, [currentLesion, showGrid]);
 
   // 컴포넌트 마운트/언마운트 시 이벤트 리스너 설정
   useEffect(() => {
@@ -807,23 +807,23 @@ const Analysis: React.FC = () => {
                   <div className="toggle-group">
                     <span className="toggle-text">AI 병변 포착</span>
                     <div
-                      className={`toggle-switch ${isAIDetectionOn ? 'active' : ''}`}
-                      onClick={() => setIsAIDetectionOn(!isAIDetectionOn)}
+                      className={`toggle-switch ${showAIDetection ? 'active' : ''}`}
+                      onClick={() => setShowAIDetection(!showAIDetection)}
                     >
                       <span className="toggle-slider"></span>
                     </div>
-                    <span className="toggle-text">{isAIDetectionOn ? 'ON' : 'OFF'}</span>
+                    <span className="toggle-text">{showAIDetection ? 'ON' : 'OFF'}</span>
                   </div>
 
                   <div className="toggle-group">
                     <span className="toggle-text">Grid로 보기</span>
                     <div
-                      className={`toggle-switch ${isGridOn ? 'active' : ''}`}
-                      onClick={() => setIsGridOn(!isGridOn)}
+                      className={`toggle-switch ${showGrid ? 'active' : ''}`}
+                      onClick={() => setShowGrid(!showGrid)}
                     >
                       <span className="toggle-slider"></span>
                     </div>
-                    <span className="toggle-text">{isGridOn ? 'ON' : 'OFF'}</span>
+                    <span className="toggle-text">{showGrid ? 'ON' : 'OFF'}</span>
                   </div>
 
                   <div className="size-control">
