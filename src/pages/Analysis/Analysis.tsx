@@ -744,8 +744,31 @@ const Analysis: React.FC = () => {
                 </div>
                 <div className="detection-image">
                   <img
-                    src={process.env.PUBLIC_URL + '/images/eye.jpeg'}
+                    src="./images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
+                    style={{
+                      transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                      transformOrigin: 'center center'
+                    }}
+                    draggable={false}
+                    onError={(e) => {
+                      console.error('이미지 로드 실패:', e);
+                      e.currentTarget.src = './images/eye.jpeg';
+                    }}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    onClick={handleCanvasClick}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                      transformOrigin: 'center center',
+                      pointerEvents: 'auto'
+                    }}
                   />
                 </div>
               </div>
@@ -847,13 +870,17 @@ const Analysis: React.FC = () => {
                   onWheel={handleWheel}
                 >
                   <img
-                    src={process.env.PUBLIC_URL + '/images/eye.jpeg'}
+                    src="./images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                     style={{
                       transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
                       transformOrigin: 'center center'
                     }}
                     draggable={false}
+                    onError={(e) => {
+                      console.error('이미지 로드 실패:', e);
+                      e.currentTarget.src = './images/eye.jpeg';
+                    }}
                   />
                   <canvas
                     ref={canvasRef}
