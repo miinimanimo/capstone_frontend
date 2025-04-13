@@ -198,54 +198,35 @@ const Analysis: React.FC = () => {
   const handleSelectAll = () => {};
 
   // 7) 마우스 휠로 이미지 확대/축소
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     if (currentStep === 3) {
-      const mainEyeImage = imageRef.current;
-      if (!mainEyeImage) return;
-
-      const rect = mainEyeImage.getBoundingClientRect();
-      const isInside = 
-        e.clientX >= rect.left && 
-        e.clientX <= rect.right && 
-        e.clientY >= rect.top && 
-        e.clientY <= rect.bottom;
-
-      if (isInside) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const delta = e.deltaY * -0.01;
-        setImageSize(prevSize => {
-          const newSize = prevSize + (delta * 5); // 확대/축소 속도 조절
-          return Math.max(50, Math.round(newSize)); // 최소 50%로만 제한
-        });
-      }
+      e.preventDefault();
+      const delta = e.deltaY * -0.01;
+      setImageSize(prevSize => {
+        const newSize = prevSize + (delta * 10);
+        return Math.max(50, Math.round(newSize));
+      });
     }
-  };
+  }, [currentStep]);
 
   // 8) 컴포넌트 마운트/언마운트 시 wheel 이벤트 처리
   useEffect(() => {
     const mainEyeImage = imageRef.current;
     if (!mainEyeImage || currentStep !== 3) return;
 
-    const preventScroll = (e: WheelEvent) => {
-      const rect = mainEyeImage.getBoundingClientRect();
-      const isInside = 
-        e.clientX >= rect.left && 
-        e.clientX <= rect.right && 
-        e.clientY >= rect.top && 
-        e.clientY <= rect.bottom;
-
-      if (isInside) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+    const handleWheelEvent = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY * -0.01;
+      setImageSize(prevSize => {
+        const newSize = prevSize + (delta * 10);
+        return Math.max(50, Math.round(newSize));
+      });
     };
 
-    mainEyeImage.addEventListener('wheel', preventScroll, { passive: false });
+    mainEyeImage.addEventListener('wheel', handleWheelEvent, { passive: false });
 
     return () => {
-      mainEyeImage.removeEventListener('wheel', preventScroll);
+      mainEyeImage.removeEventListener('wheel', handleWheelEvent);
     };
   }, [currentStep]);
 
@@ -842,6 +823,7 @@ const Analysis: React.FC = () => {
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   onWheel={handleWheel}
+                  style={{ touchAction: 'none' }}
                 >
                   <img
                     src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
