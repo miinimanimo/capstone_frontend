@@ -1,0 +1,8 @@
+{
+  "short_name": "DR Analysis",
+  "name": "Diabetic Retinopathy Analysis Tool",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#4B19E5",
+  "background_color": "#ffffff"
+}
