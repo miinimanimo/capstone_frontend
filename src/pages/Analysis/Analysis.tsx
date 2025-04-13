@@ -744,7 +744,7 @@ const Analysis: React.FC = () => {
                 </div>
                 <div className="detection-image">
                   <img
-                    src={process.env.PUBLIC_URL + '/images/eye.jpeg'}
+                    src="./images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                   />
                 </div>
@@ -847,7 +847,7 @@ const Analysis: React.FC = () => {
                   onWheel={handleWheel}
                 >
                   <img
-                    src={process.env.PUBLIC_URL + '/images/eye.jpeg'}
+                    src="./images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
                     style={{
                       transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
