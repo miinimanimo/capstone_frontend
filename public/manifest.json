@@ -1,8 +1,3 @@
-{
-  "short_name": "DR Analysis",
-  "name": "Diabetic Retinopathy Analysis Tool",
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#4B19E5",
-  "background_color": "#ffffff"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:755543deb2d6b5b055f27751558a568924342071fd989f4c9bdd97da2d4ad339
+size 190

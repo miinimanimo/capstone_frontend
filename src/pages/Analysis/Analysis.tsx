@@ -6,6 +6,18 @@ interface Patient {
   code: string;
 }
 
+interface SuperpixelData {
+  imageInfo: {
+    width: number;
+    height: number;
+    filename: string;
+  };
+  slicResult: {
+    labels: number[][];
+    numSuperpixels: number;
+  };
+}
+
 const Analysis: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [eyeStatus, setEyeStatus] = useState({
@@ -33,6 +45,7 @@ const Analysis: React.FC = () => {
   
   const [showGrid, setShowGrid] = useState<boolean>(false);
   const [showAIDetection, setShowAIDetection] = useState<boolean>(false);
+  const [showSuperpixel, setShowSuperpixel] = useState<boolean>(false);
   const imageRef = React.useRef<HTMLDivElement>(null);
 
   // 중증도 선택
@@ -41,7 +54,7 @@ const Analysis: React.FC = () => {
   const [selectedLesions, setSelectedLesions] = useState<string[]>([]);
   const [allSelected, setAllSelected] = useState<boolean>(false);
 
-  // SLIC 세그먼트 관련 상태를 Grid로 변경
+  // Grid로
   const [selectedPixels, setSelectedPixels] = useState<{[key: string]: number[]}>({});
   const [currentLesion, setCurrentLesion] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,6 +66,10 @@ const Analysis: React.FC = () => {
   // 이미지 업로드 관련 상태
   const [leftEyeImage, setLeftEyeImage] = useState<string | null>(null);
   const [rightEyeImage, setRightEyeImage] = useState<string | null>(null);
+
+  // Superpixel 관련 상태
+  const [superpixelData, setSuperpixelData] = useState<SuperpixelData | null>(null);
+  const [selectedSuperpixels, setSelectedSuperpixels] = useState<{[key: string]: number[]}>({});
 
   // 1) 사이드바 단계 정의
   const steps = [
@@ -230,8 +247,23 @@ const Analysis: React.FC = () => {
     };
   }, [currentStep]);
 
-  // Grid 그리기 함수
-  const drawGrid = useCallback(() => {
+  // SLIC 데이터 로드
+  useEffect(() => {
+    const loadSuperpixelData = async () => {
+      try {
+        const response = await fetch('/capstone_frontend/data/slic_test_data.json');
+        const data = await response.json();
+        console.log('Loaded superpixel data:', data); // 데이터 로드 확인용
+        setSuperpixelData(data);
+      } catch (error) {
+        console.error('Failed to load superpixel data:', error);
+      }
+    };
+    loadSuperpixelData();
+  }, []);
+
+  // Grid와 Superpixel 그리기 함수
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = imageRef.current;
     if (!canvas || !container) return;
@@ -244,77 +276,144 @@ const Analysis: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    if (!showGrid) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      return;
-    }
-
-    // 그리드 크기 계산 (200x200)
-    const cellWidth = rect.width / 200;
-    const cellHeight = rect.height / 200;
-
     // 캔버스 초기화
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 모든 선택된 병변의 픽셀들 그리기
-    Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
-      // 병변 타입에 따른 색상 설정 (현재 선택된 병변은 더 진하게)
-      const opacity = lesionId === currentLesion ? 0.5 : 0.3;
-      
-      switch (lesionId) {
-        case 'retinal':
-          ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; // 빨간색
-          break;
-        case 'vitreous':
-          ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`; // 보라색
-          break;
-        case 'preretinal':
-          ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`; // 분홍색
-          break;
-        case 'micro':
-          ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`; // 초록색
-          break;
-        case 'exudates':
-          ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; // 파란색
-          break;
-        case 'cotton':
-          ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`; // 하늘색
-          break;
-        default:
-          ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+    if (showGrid) {
+      // 그리드 그리기 (기존 코드)
+      const cellWidth = rect.width / 200;
+      const cellHeight = rect.height / 200;
+
+      // 모든 선택된 병변의 픽셀들 그리기
+      Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
+        const opacity = lesionId === currentLesion ? 0.5 : 0.3;
+        
+        switch (lesionId) {
+          case 'retinal':
+            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; // 빨간색
+            break;
+          case 'vitreous':
+            ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`; // 보라색
+            break;
+          case 'preretinal':
+            ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`; // 분홍색
+            break;
+          case 'micro':
+            ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`; // 초록색
+            break;
+          case 'exudates':
+            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; // 파란색
+            break;
+          case 'cotton':
+            ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`; // 하늘색
+            break;
+          default:
+            ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+        }
+
+        pixels.forEach(pixelIndex => {
+          const row = Math.floor(pixelIndex / 200);
+          const col = pixelIndex % 200;
+          ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
+        });
+      });
+
+      // 그리드 라인 그리기
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.lineWidth = 0.3;
+
+      for (let i = 0; i <= 200; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * cellWidth, 0);
+        ctx.lineTo(i * cellWidth, canvas.height);
+        ctx.stroke();
       }
 
-      pixels.forEach(pixelIndex => {
-        const row = Math.floor(pixelIndex / 200);
-        const col = pixelIndex % 200;
-        ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
+      for (let i = 0; i <= 200; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, i * cellHeight);
+        ctx.lineTo(canvas.width, i * cellHeight);
+        ctx.stroke();
+      }
+    }
+
+    if (showSuperpixel && superpixelData) {
+      // 수퍼픽셀 그리기
+      const { width, height } = superpixelData.imageInfo;
+      const { labels } = superpixelData.slicResult;
+      
+      const scaleX = rect.width / width;
+      const scaleY = rect.height / height;
+
+      // 선택된 수퍼픽셀 그리기
+      Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
+        const opacity = lesionId === currentLesion ? 0.5 : 0.3;
+        
+        switch (lesionId) {
+          case 'retinal':
+            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`;
+            break;
+          case 'vitreous':
+            ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`;
+            break;
+          case 'preretinal':
+            ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`;
+            break;
+          case 'micro':
+            ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`;
+            break;
+          case 'exudates':
+            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`;
+            break;
+          case 'cotton':
+            ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`;
+            break;
+          default:
+            ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+        }
+
+        // 선택된 수퍼픽셀 채우기
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (superpixelIndices.includes(labels[y][x])) {
+              ctx.fillRect(x * scaleX, y * scaleY, scaleX, scaleY);
+            }
+          }
+        }
       });
-    });
 
-    // 그리드 그리기
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; // 검정색으로 변경하고 투명도 0.5로 설정
-    ctx.lineWidth = 0.3; // 선 두께 유지
+      // 수퍼픽셀 경계선 그리기
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.lineWidth = 0.5;
 
-    // 세로선
-    for (let i = 0; i <= 200; i++) {
-      ctx.beginPath();
-      ctx.moveTo(i * cellWidth, 0);
-      ctx.lineTo(i * cellWidth, canvas.height);
-      ctx.stroke();
+      for (let y = 0; y < height - 1; y++) {
+        for (let x = 0; x < width - 1; x++) {
+          const currentLabel = labels[y][x];
+          const rightLabel = labels[y][x + 1];
+          const bottomLabel = labels[y + 1][x];
+
+          if (currentLabel !== rightLabel) {
+            ctx.beginPath();
+            ctx.moveTo((x + 1) * scaleX, y * scaleY);
+            ctx.lineTo((x + 1) * scaleX, (y + 1) * scaleY);
+            ctx.stroke();
+          }
+
+          if (currentLabel !== bottomLabel) {
+            ctx.beginPath();
+            ctx.moveTo(x * scaleX, (y + 1) * scaleY);
+            ctx.lineTo((x + 1) * scaleX, (y + 1) * scaleY);
+            ctx.stroke();
+          }
+        }
+      }
     }
+  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData]);
 
-    // 가로선
-    for (let i = 0; i <= 200; i++) {
-      ctx.beginPath();
-      ctx.moveTo(0, i * cellHeight);
-      ctx.lineTo(canvas.width, i * cellHeight);
-      ctx.stroke();
-    }
-  }, [selectedPixels, showGrid, currentLesion]);
-
-  // 픽셀 선택 처리
+  // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!currentLesion || !showGrid) return;
+    if (!currentLesion) return;
+    if (!showGrid && !showSuperpixel) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -323,55 +422,78 @@ const Analysis: React.FC = () => {
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    // 마우스 좌표를 캔버스 좌표로 변환
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
-    // 그리드 셀 크기
-    const cellWidth = canvas.width / 200;
-    const cellHeight = canvas.height / 200;
+    if (showGrid) {
+      // 그리드 모드에서의 픽셀 선택
+      const cellWidth = canvas.width / 200;
+      const cellHeight = canvas.height / 200;
 
-    // 클릭한 셀의 인덱스 계산
-    const col = Math.floor(x / cellWidth);
-    const row = Math.floor(y / cellHeight);
-    const pixelIndex = row * 200 + col;
+      const col = Math.floor(x / cellWidth);
+      const row = Math.floor(y / cellHeight);
+      const pixelIndex = row * 200 + col;
 
-    setSelectedPixels(prev => {
-      const currentPixels = prev[currentLesion] || [];
-      const newPixels = { ...prev };
+      setSelectedPixels(prev => {
+        const currentPixels = prev[currentLesion] || [];
+        const newPixels = { ...prev };
+        
+        if (currentPixels.includes(pixelIndex)) {
+          newPixels[currentLesion] = currentPixels.filter(p => p !== pixelIndex);
+        } else {
+          newPixels[currentLesion] = [...currentPixels, pixelIndex];
+        }
+        
+        return newPixels;
+      });
+    }
+
+    if (showSuperpixel && superpixelData) {
+      // 수퍼픽셀 모드에서의 선택
+      const { width, height } = superpixelData.imageInfo;
+      const { labels } = superpixelData.slicResult;
       
-      // 이미 선택된 픽셀이면 제거, 아니면 추가
-      if (currentPixels.includes(pixelIndex)) {
-        newPixels[currentLesion] = currentPixels.filter(p => p !== pixelIndex);
-      } else {
-        newPixels[currentLesion] = [...currentPixels, pixelIndex];
+      const imgX = Math.floor((x / canvas.width) * width);
+      const imgY = Math.floor((y / canvas.height) * height);
+      
+      if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
+        const selectedLabel = labels[imgY][imgX];
+
+        setSelectedSuperpixels(prev => {
+          const currentSuperpixels = prev[currentLesion] || [];
+          const newSuperpixels = { ...prev };
+
+          if (currentSuperpixels.includes(selectedLabel)) {
+            newSuperpixels[currentLesion] = currentSuperpixels.filter(l => l !== selectedLabel);
+          } else {
+            newSuperpixels[currentLesion] = [...currentSuperpixels, selectedLabel];
+          }
+
+          return newSuperpixels;
+        });
       }
-      
-      return newPixels;
-    });
-  }, [currentLesion, showGrid]);
+    }
+  }, [currentLesion, showGrid, showSuperpixel, superpixelData]);
 
-  // 컴포넌트 마운트/언마운트 시 이벤트 리스너 설정
+  // useEffect 수정
   useEffect(() => {
-    drawGrid();
-  }, [drawGrid]);
+    drawCanvas();
+  }, [drawCanvas]);
 
-  // 윈도우 리사이즈 시 그리드 다시 그리기
   useEffect(() => {
     const handleResize = () => {
-      drawGrid();
+      drawCanvas();
     };
 
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [drawGrid]);
+  }, [drawCanvas]);
 
-  // 이미지 크기나 위치 변경 시 그리드 다시 그리기
   useEffect(() => {
-    drawGrid();
-  }, [imageSize, imagePosition, drawGrid]);
+    drawCanvas();
+  }, [imageSize, imagePosition, drawCanvas]);
 
   // 8) 단계별 버튼 렌더링
   const renderStepButtons = () => {
@@ -797,11 +919,32 @@ const Analysis: React.FC = () => {
                     <span className="toggle-text">Grid로 보기</span>
                     <div
                       className={`toggle-switch ${showGrid ? 'active' : ''}`}
-                      onClick={() => setShowGrid(!showGrid)}
+                      onClick={() => {
+                        setShowGrid(!showGrid);
+                        if (!showGrid) {
+                          setShowSuperpixel(false);
+                        }
+                      }}
                     >
                       <span className="toggle-slider"></span>
                     </div>
                     <span className="toggle-text">{showGrid ? 'ON' : 'OFF'}</span>
+                  </div>
+
+                  <div className="toggle-group">
+                    <span className="toggle-text">Superpixel로 보기</span>
+                    <div
+                      className={`toggle-switch ${showSuperpixel ? 'active' : ''}`}
+                      onClick={() => {
+                        setShowSuperpixel(!showSuperpixel);
+                        if (!showSuperpixel) {
+                          setShowGrid(false);
+                        }
+                      }}
+                    >
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span className="toggle-text">{showSuperpixel ? 'ON' : 'OFF'}</span>
                   </div>
 
                   <div className="size-control">
