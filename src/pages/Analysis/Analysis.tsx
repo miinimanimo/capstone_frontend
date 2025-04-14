@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './Analysis.css';
+import { storage } from '../../firebase';
+import { ref, getDownloadURL } from 'firebase/storage';
 
 interface Patient {
   name: string;
@@ -251,14 +253,22 @@ const Analysis: React.FC = () => {
   useEffect(() => {
     const loadSuperpixelData = async () => {
       try {
-        const response = await fetch('/capstone_frontend/data/slic_test_data.json');
+        // Firebase Storage에서 JSON 파일 URL 가져오기
+        const fileRef = ref(storage, 'slic_test_data.json');
+        const url = await getDownloadURL(fileRef);
+        
+        // URL로 JSON 파일 불러오기
+        const response = await fetch(url, {
+          mode: 'cors'
+        });
         const data = await response.json();
-        console.log('Loaded superpixel data:', data); // 데이터 로드 확인용
         setSuperpixelData(data);
+        console.log('Superpixel data loaded successfully');
       } catch (error) {
-        console.error('Failed to load superpixel data:', error);
+        console.error('Error loading superpixel data:', error);
       }
     };
+
     loadSuperpixelData();
   }, []);
 
