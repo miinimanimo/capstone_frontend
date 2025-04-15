@@ -289,71 +289,32 @@ const Analysis: React.FC = () => {
     // 캔버스 초기화
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (showGrid) {
-      // 그리드 그리기 (기존 코드)
-      const cellWidth = rect.width / 200;
-      const cellHeight = rect.height / 200;
-
-      // 모든 선택된 병변의 픽셀들 그리기
-      Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
-        const opacity = lesionId === currentLesion ? 0.5 : 0.3;
-        
-        switch (lesionId) {
-          case 'retinal':
-            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; // 빨간색
-            break;
-          case 'vitreous':
-            ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`; // 보라색
-            break;
-          case 'preretinal':
-            ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`; // 분홍색
-            break;
-          case 'micro':
-            ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`; // 초록색
-            break;
-          case 'exudates':
-            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; // 파란색
-            break;
-          case 'cotton':
-            ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`; // 하늘색
-            break;
-          default:
-            ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
-        }
-
-        pixels.forEach(pixelIndex => {
-          const row = Math.floor(pixelIndex / 200);
-          const col = pixelIndex % 200;
-          ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
-        });
-      });
-
-      // 그리드 라인 그리기
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.lineWidth = 0.3;
-
-      for (let i = 0; i <= 200; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * cellWidth, 0);
-        ctx.lineTo(i * cellWidth, canvas.height);
-        ctx.stroke();
-      }
-
-      for (let i = 0; i <= 200; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, i * cellHeight);
-        ctx.lineTo(canvas.width, i * cellHeight);
-        ctx.stroke();
-      }
-    }
+    // 현재 이미지 크기에 맞춰 스케일 조정
+    const scale = Math.round(imageSize) / 100;
+    ctx.save();
+    ctx.translate(imagePosition.x, imagePosition.y);
+    ctx.scale(scale, scale);
 
     if (showSuperpixel && superpixelData) {
       // 수퍼픽셀 그리기
       const { width, height } = superpixelData.imageInfo;
       const { labels } = superpixelData.slicResult;
       
-      const scaleX = rect.width / width;
-      const scaleY = rect.height / height;
+      // 이미지 실제 크기와 컨테이너 크기의 비율 계산
+      const containerAspectRatio = rect.width / rect.height;
+      const imageAspectRatio = width / height;
+      
+      let drawWidth, drawHeight;
+      if (containerAspectRatio > imageAspectRatio) {
+        drawHeight = rect.height / scale;
+        drawWidth = (drawHeight * width) / height;
+      } else {
+        drawWidth = rect.width / scale;
+        drawHeight = (drawWidth * height) / width;
+      }
+
+      const scaleX = drawWidth / width;
+      const scaleY = drawHeight / height;
 
       // 선택된 수퍼픽셀 그리기
       Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
@@ -386,7 +347,12 @@ const Analysis: React.FC = () => {
         for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
             if (superpixelIndices.includes(labels[y][x])) {
-              ctx.fillRect(x * scaleX, y * scaleY, scaleX, scaleY);
+              ctx.fillRect(
+                x * scaleX - (drawWidth - rect.width/scale) / 2,
+                y * scaleY - (drawHeight - rect.height/scale) / 2,
+                scaleX,
+                scaleY
+              );
             }
           }
         }
@@ -404,21 +370,35 @@ const Analysis: React.FC = () => {
 
           if (currentLabel !== rightLabel) {
             ctx.beginPath();
-            ctx.moveTo((x + 1) * scaleX, y * scaleY);
-            ctx.lineTo((x + 1) * scaleX, (y + 1) * scaleY);
+            ctx.moveTo(
+              (x + 1) * scaleX - (drawWidth - rect.width/scale) / 2,
+              y * scaleY - (drawHeight - rect.height/scale) / 2
+            );
+            ctx.lineTo(
+              (x + 1) * scaleX - (drawWidth - rect.width/scale) / 2,
+              (y + 1) * scaleY - (drawHeight - rect.height/scale) / 2
+            );
             ctx.stroke();
           }
 
           if (currentLabel !== bottomLabel) {
             ctx.beginPath();
-            ctx.moveTo(x * scaleX, (y + 1) * scaleY);
-            ctx.lineTo((x + 1) * scaleX, (y + 1) * scaleY);
+            ctx.moveTo(
+              x * scaleX - (drawWidth - rect.width/scale) / 2,
+              (y + 1) * scaleY - (drawHeight - rect.height/scale) / 2
+            );
+            ctx.lineTo(
+              (x + 1) * scaleX - (drawWidth - rect.width/scale) / 2,
+              (y + 1) * scaleY - (drawHeight - rect.height/scale) / 2
+            );
             ctx.stroke();
           }
         }
       }
     }
-  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData]);
+    
+    ctx.restore();
+  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, imageSize, imagePosition]);
 
   // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
