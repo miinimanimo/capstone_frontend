@@ -363,68 +363,92 @@ const Analysis: React.FC = () => {
       const { width, height } = superpixelData.imageInfo;
       const { labels } = superpixelData.slicResult;
       
-      const scaleX = rect.width / width;
-      const scaleY = rect.height / height;
+      // 이미지 크기에 맞춰 스케일 계산
+      const imageElement = container?.querySelector('img');
+      if (!imageElement) return;
 
-      // 선택된 수퍼픽셀 그리기
-      Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
-        const opacity = lesionId === currentLesion ? 0.5 : 0.3;
-        
-        switch (lesionId) {
-          case 'retinal':
-            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`;
-            break;
-          case 'vitreous':
-            ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`;
-            break;
-          case 'preretinal':
-            ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`;
-            break;
-          case 'micro':
-            ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`;
-            break;
-          case 'exudates':
-            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`;
-            break;
-          case 'cotton':
-            ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`;
-            break;
-          default:
-            ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
-        }
+      const naturalWidth = imageElement.naturalWidth;
+      const naturalHeight = imageElement.naturalHeight;
+      const imageRect = imageElement.getBoundingClientRect();
+      
+      if (imageRect) {
+        // 캔버스 크기를 이미지 크기와 동일하게 설정
+        canvas.width = imageRect.width;
+        canvas.height = imageRect.height;
 
-        // 선택된 수퍼픽셀 채우기
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            if (superpixelIndices.includes(labels[y][x])) {
-              ctx.fillRect(x * scaleX, y * scaleY, scaleX, scaleY);
+        // 이미지의 실제 크기와 표시되는 크기의 비율 계산
+        const scaleX = imageRect.width / width;
+        const scaleY = imageRect.height / height;
+
+        // 선택된 수퍼픽셀 그리기
+        Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
+          const opacity = lesionId === currentLesion ? 0.5 : 0.3;
+          
+          switch (lesionId) {
+            case 'retinal':
+              ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`;
+              break;
+            case 'vitreous':
+              ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`;
+              break;
+            case 'preretinal':
+              ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`;
+              break;
+            case 'micro':
+              ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`;
+              break;
+            case 'exudates':
+              ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`;
+              break;
+            case 'cotton':
+              ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`;
+              break;
+            default:
+              ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+          }
+
+          // 선택된 수퍼픽셀 채우기
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const label = labels[y][x];
+              if (label !== -1 && superpixelIndices.includes(label)) {
+                const canvasX = x * scaleX;
+                const canvasY = y * scaleY;
+                ctx.fillRect(canvasX, canvasY, scaleX, scaleY);
+              }
             }
           }
-        }
-      });
+        });
 
-      // 수퍼픽셀 경계선 그리기
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.lineWidth = 0.5;
+        // 수퍼픽셀 경계선 그리기
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 0.5;
 
-      for (let y = 0; y < height - 1; y++) {
-        for (let x = 0; x < width - 1; x++) {
-          const currentLabel = labels[y][x];
-          const rightLabel = labels[y][x + 1];
-          const bottomLabel = labels[y + 1][x];
+        for (let y = 0; y < height - 1; y++) {
+          for (let x = 0; x < width - 1; x++) {
+            const currentLabel = labels[y][x];
+            const rightLabel = labels[y][x + 1];
+            const bottomLabel = labels[y + 1][x];
 
-          if (currentLabel !== rightLabel) {
-            ctx.beginPath();
-            ctx.moveTo((x + 1) * scaleX, y * scaleY);
-            ctx.lineTo((x + 1) * scaleX, (y + 1) * scaleY);
-            ctx.stroke();
-          }
+            if (currentLabel !== -1) {
+              if (currentLabel !== rightLabel) {
+                const canvasX = (x + 1) * scaleX;
+                const canvasY = y * scaleY;
+                ctx.beginPath();
+                ctx.moveTo(canvasX, canvasY);
+                ctx.lineTo(canvasX, canvasY + scaleY);
+                ctx.stroke();
+              }
 
-          if (currentLabel !== bottomLabel) {
-            ctx.beginPath();
-            ctx.moveTo(x * scaleX, (y + 1) * scaleY);
-            ctx.lineTo((x + 1) * scaleX, (y + 1) * scaleY);
-            ctx.stroke();
+              if (currentLabel !== bottomLabel) {
+                const canvasX = x * scaleX;
+                const canvasY = (y + 1) * scaleY;
+                ctx.beginPath();
+                ctx.moveTo(canvasX, canvasY);
+                ctx.lineTo(canvasX + scaleX, canvasY);
+                ctx.stroke();
+              }
+            }
           }
         }
       }
@@ -841,9 +865,17 @@ const Analysis: React.FC = () => {
 
               <div className="detection-container">
                 <div className="detection-section">
-                  <h3>
-                    {selectedEye === 'left' ? '좌안' : '우안'} AI 포착 병변
-                  </h3>
+                  <div className="detection-header-container">
+                    <h3>
+                      {selectedEye === 'left' ? '좌안' : '우안'} AI 포착 병변
+                    </h3>
+                    <button 
+                      className={`select-all-button ${allSelected ? 'selected' : ''}`}
+                      onClick={handleSelectAll}
+                    >
+                      모든 병변 선택
+                    </button>
+                  </div>
                   <div className="detection-list">
                     <div className="detection-header">
                       <span>병변</span>

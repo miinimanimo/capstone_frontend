@@ -329,13 +329,34 @@
   align-items: center;
 }
 
+.detection-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detection-header-container h3 {
+  margin: 0;
+}
+
 .select-all-button {
-  font-size: 0.875rem;
-  color: #4B19E5;
-  background: none;
+  padding: 8px 16px;
   border: none;
+  border-radius: 4px;
+  background-color: #F6F6F6;
+  color: #000000;
   cursor: pointer;
-  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.select-all-button:hover {
+  background-color: #EBEBEB;
+}
+
+.select-all-button.selected {
+  background-color: #EBEBEB;
 }
 
 .detection-list {
