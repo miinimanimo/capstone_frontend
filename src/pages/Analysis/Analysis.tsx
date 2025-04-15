@@ -304,7 +304,7 @@ const Analysis: React.FC = () => {
       const containerAspectRatio = rect.width / rect.height;
       const imageAspectRatio = width / height;
       
-      let drawWidth, drawHeight;
+      let drawWidth: number, drawHeight: number;
       if (containerAspectRatio > imageAspectRatio) {
         drawHeight = rect.height / scale;
         drawWidth = (drawHeight * width) / height;
