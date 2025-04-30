@@ -73,6 +73,9 @@ const Analysis: React.FC = () => {
   const [superpixelData, setSuperpixelData] = useState<SuperpixelData | null>(null);
   const [selectedSuperpixels, setSelectedSuperpixels] = useState<{[key: string]: number[]}>({});
 
+  // 원본 이미지 크기 저장
+  const [originalImageSize, setOriginalImageSize] = useState<{width: number, height: number} | null>(null);
+
   // 1) 사이드바 단계 정의
   const steps = [
     {
@@ -283,6 +286,15 @@ const Analysis: React.FC = () => {
     loadSuperpixelData();
   }, []);
 
+  // 이미지 로드 핸들러
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setOriginalImageSize({
+      width: img.naturalWidth,
+      height: img.naturalHeight
+    });
+  };
+
   // Grid와 Superpixel 그리기 함수
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -358,100 +370,155 @@ const Analysis: React.FC = () => {
       }
     }
 
-    if (showSuperpixel && superpixelData) {
-      // 수퍼픽셀 그리기
-      const { width, height } = superpixelData.imageInfo;
+    if (showSuperpixel && superpixelData && originalImageSize) {
       const { labels } = superpixelData.slicResult;
+      const { width: slicWidth, height: slicHeight } = superpixelData.imageInfo;
       
-      // 이미지 크기에 맞춰 스케일 계산
       const imageElement = container?.querySelector('img');
       if (!imageElement) return;
 
       const imageRect = imageElement.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const zoomScale = imageSize / 100;
+
+      // 이미지의 실제 스케일 계산
+      const containerAspectRatio = containerRect.width / containerRect.height;
+      const imageAspectRatio = originalImageSize.width / originalImageSize.height;
       
-      if (imageRect) {
-        // 캔버스 크기를 이미지 크기와 동일하게 설정
-        canvas.width = imageRect.width;
-        canvas.height = imageRect.height;
+      let scaledWidth, scaledHeight;
+      if (containerAspectRatio > imageAspectRatio) {
+        // 세로에 맞춤
+        scaledHeight = containerRect.height;
+        scaledWidth = scaledHeight * imageAspectRatio;
+      } else {
+        // 가로에 맞춤
+        scaledWidth = containerRect.width;
+        scaledHeight = scaledWidth / imageAspectRatio;
+      }
 
-        // 이미지의 실제 크기와 표시되는 크기의 비율 계산
-        const scaleX = imageRect.width / width;
-        const scaleY = imageRect.height / height;
+      // 캔버스 크기 설정 (기본 크기)
+      canvas.width = scaledWidth;
+      canvas.height = scaledHeight;
 
-        // 선택된 수퍼픽셀 그리기
-        Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
-          const opacity = lesionId === currentLesion ? 0.5 : 0.3;
-          
-          switch (lesionId) {
-            case 'retinal':
-              ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`;
-              break;
-            case 'vitreous':
-              ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`;
-              break;
-            case 'preretinal':
-              ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`;
-              break;
-            case 'micro':
-              ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`;
-              break;
-            case 'exudates':
-              ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`;
-              break;
-            case 'cotton':
-              ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`;
-              break;
-            default:
-              ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
-          }
+      // 캔버스 스타일 설정
+      canvas.style.position = 'absolute';
+      canvas.style.top = '50%';
+      canvas.style.left = '50%';
+      canvas.style.width = `${scaledWidth}px`;
+      canvas.style.height = `${scaledHeight}px`;
+      canvas.style.transform = `translate(-50%, -50%) scale(${zoomScale}) translate(${imagePosition.x}px, ${imagePosition.y}px)`;
+      canvas.style.transformOrigin = 'center';
 
-          // 선택된 수퍼픽셀 채우기
-          for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-              const label = labels[y][x];
-              if (label !== -1 && superpixelIndices.includes(label)) {
-                const canvasX = x * scaleX;
-                const canvasY = y * scaleY;
-                ctx.fillRect(canvasX, canvasY, scaleX, scaleY);
+      // 디버깅을 위한 크기 정보 출력
+      console.log('SLIC 크기:', { slicWidth, slicHeight });
+      console.log('원본 이미지 크기:', originalImageSize);
+      console.log('컨테이너 크기:', { width: containerRect.width, height: containerRect.height });
+      console.log('스케일된 크기:', { width: scaledWidth, height: scaledHeight });
+      console.log('Zoom level:', zoomScale);
+      console.log('Image position:', imagePosition);
+
+      // 컨텍스트 초기화
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 좌표 변환 설정
+      const scaleX = scaledWidth / slicWidth;
+      const scaleY = scaledHeight / slicHeight;
+      ctx.scale(scaleX, scaleY);
+
+      // 선택된 수퍼픽셀 그리기
+      Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
+        const opacity = lesionId === currentLesion ? 0.5 : 0.3;
+        
+        switch (lesionId) {
+          case 'retinal':
+            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`;
+            break;
+          case 'vitreous':
+            ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`;
+            break;
+          case 'preretinal':
+            ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`;
+            break;
+          case 'micro':
+            ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`;
+            break;
+          case 'exudates':
+            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`;
+            break;
+          case 'cotton':
+            ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`;
+            break;
+          default:
+            ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+        }
+
+        // 선택된 수퍼픽셀 채우기
+        for (let y = 0; y < slicHeight; y++) {
+          let currentBatch: { startX: number; width: number; } | null = null;
+
+          for (let x = 0; x < slicWidth; x++) {
+            const label = labels[y][x];
+            
+            // 배경(-1)이 아니고 선택된 수퍼픽셀인 경우에만 처리
+            if (label !== -1 && superpixelIndices.includes(label)) {
+              if (!currentBatch) {
+                currentBatch = { startX: x, width: 1 };
+              } else {
+                currentBatch.width++;
               }
+            } else if (currentBatch) {
+              // 배치 그리기
+              ctx.fillRect(currentBatch.startX, y, currentBatch.width, 1);
+              currentBatch = null;
             }
           }
-        });
 
-        // 수퍼픽셀 경계선 그리기
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = 0.5;
+          // 행의 마지막 배치 처리
+          if (currentBatch) {
+            ctx.fillRect(currentBatch.startX, y, currentBatch.width, 1);
+          }
+        }
+      });
 
-        for (let y = 0; y < height - 1; y++) {
-          for (let x = 0; x < width - 1; x++) {
-            const currentLabel = labels[y][x];
+      // 수퍼픽셀 경계선 그리기
+      // 줌이 커질수록 경계선은 얇아지고 투명해짐
+      const lineWidth = Math.max(0.3, 1 / zoomScale);
+      const opacity = Math.max(0.25, 0.4 / Math.sqrt(zoomScale));  // 제곱근을 사용하여 투명도가 너무 빨리 감소하지 않도록 함
+      
+      ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
+      ctx.lineWidth = lineWidth;
+
+      for (let y = 0; y < slicHeight - 1; y++) {
+        for (let x = 0; x < slicWidth - 1; x++) {
+          const currentLabel = labels[y][x];
+          
+          // 배경(-1)이 아닌 경우에만 경계선 그리기
+          if (currentLabel !== -1) {
             const rightLabel = labels[y][x + 1];
             const bottomLabel = labels[y + 1][x];
 
-            if (currentLabel !== -1) {
-              if (currentLabel !== rightLabel) {
-                const canvasX = (x + 1) * scaleX;
-                const canvasY = y * scaleY;
-                ctx.beginPath();
-                ctx.moveTo(canvasX, canvasY);
-                ctx.lineTo(canvasX, canvasY + scaleY);
-                ctx.stroke();
-              }
+            if (rightLabel !== -1 && currentLabel !== rightLabel) {
+              ctx.beginPath();
+              ctx.moveTo(x + 1, y);
+              ctx.lineTo(x + 1, y + 1);
+              ctx.stroke();
+            }
 
-              if (currentLabel !== bottomLabel) {
-                const canvasX = x * scaleX;
-                const canvasY = (y + 1) * scaleY;
-                ctx.beginPath();
-                ctx.moveTo(canvasX, canvasY);
-                ctx.lineTo(canvasX + scaleX, canvasY);
-                ctx.stroke();
-              }
+            if (bottomLabel !== -1 && currentLabel !== bottomLabel) {
+              ctx.beginPath();
+              ctx.moveTo(x, y + 1);
+              ctx.lineTo(x + 1, y + 1);
+              ctx.stroke();
             }
           }
         }
       }
+
+      // transform 초기화
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData]);
+  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition]);
 
   // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -897,6 +964,12 @@ const Analysis: React.FC = () => {
                   <img
                     src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
+                    onLoad={handleImageLoad}
+                    style={{
+                      transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                      transformOrigin: 'center center'
+                    }}
+                    draggable={false}
                   />
                 </div>
               </div>
@@ -1022,6 +1095,7 @@ const Analysis: React.FC = () => {
                   <img
                     src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
                     alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
+                    onLoad={handleImageLoad}
                     style={{
                       transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
                       transformOrigin: 'center center'
@@ -1033,13 +1107,11 @@ const Analysis: React.FC = () => {
                     onClick={handleCanvasClick}
                     style={{
                       position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
-                      transformOrigin: 'center center',
-                      pointerEvents: 'auto'
+                      top: '50%',
+                      left: '50%',
+                      pointerEvents: 'auto',
+                      transform: `translate(-50%, -50%) scale(${imageSize / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                      transformOrigin: 'center'
                     }}
                   />
                 </div>
