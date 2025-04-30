@@ -367,8 +367,6 @@ const Analysis: React.FC = () => {
       const imageElement = container?.querySelector('img');
       if (!imageElement) return;
 
-      const naturalWidth = imageElement.naturalWidth;
-      const naturalHeight = imageElement.naturalHeight;
       const imageRect = imageElement.getBoundingClientRect();
       
       if (imageRect) {
