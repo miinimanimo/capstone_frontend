@@ -1202,6 +1202,10 @@
   height: 100%;
   object-fit: contain;
   border-radius: 6px;
+  cursor: pointer;
+  padding: 16px;
+  text-align: center;
+  background-color: transparent;
 }
 
 .upload-placeholder {
@@ -1213,7 +1217,6 @@
   padding: 16px;
   text-align: center;
   background-color: transparent;
-  transition: background-color 0.2s ease-in-out;
 }
 
 .upload-placeholder svg {
@@ -1221,7 +1224,7 @@
   height: 48px;
   color: #A0A0A0;
   margin-bottom: 12px;
-  transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+  transition: color 0.2s ease-in-out;
 }
 
 .upload-placeholder span {
@@ -1231,17 +1234,20 @@
   transition: color 0.2s ease-in-out;
 }
 
-.upload-placeholder:hover {
-  background-color: #f0f0f0;
+/* .upload-box 전체에 호버 효과 적용 */
+.upload-box:hover {
+  background-color: #e9e9e9;
+  border-color: #ccc;
 }
 
-.upload-placeholder:hover svg {
+/* .upload-box 호버 시, 내부 .upload-placeholder의 자식 요소들 스타일 변경 */
+.upload-box:hover .upload-placeholder svg {
   color: #4200FF;
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
-.upload-placeholder:hover span {
-  color: #555;
+.upload-box:hover .upload-placeholder span {
+  color: #333;
 }
 
 .upload-button {
