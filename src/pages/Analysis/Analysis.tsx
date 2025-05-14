@@ -68,6 +68,8 @@ const Analysis: React.FC = () => {
   // 이미지 업로드 관련 상태
   const [leftEyeImage, setLeftEyeImage] = useState<string | null>(null);
   const [rightEyeImage, setRightEyeImage] = useState<string | null>(null);
+  const leftEyeInputRef = useRef<HTMLInputElement>(null);
+  const rightEyeInputRef = useRef<HTMLInputElement>(null);
 
   // Superpixel 관련 상태
   const [superpixelData, setSuperpixelData] = useState<SuperpixelData | null>(null);
@@ -377,7 +379,6 @@ const Analysis: React.FC = () => {
       const imageElement = container?.querySelector('img');
       if (!imageElement) return;
 
-      const imageRect = imageElement.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
       const zoomScale = imageSize / 100;
 
@@ -690,35 +691,71 @@ const Analysis: React.FC = () => {
     });
   };
 
+  // 이미지 파일 처리 및 상태 업데이트 로직 분리
+  const processImageFile = useCallback((file: File, eye: 'left' | 'right') => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      if (eye === 'left') {
+        setLeftEyeImage(result);
+        setEyeStatus(prev => ({
+          ...prev,
+          step1: { ...prev.step1, left: true }
+        }));
+      } else {
+        setRightEyeImage(result);
+        setEyeStatus(prev => ({
+          ...prev,
+          step1: { ...prev.step1, right: true }
+        }));
+      }
+      // 원본 이미지 크기 저장을 위해 임시 이미지 로드
+      const img = new Image();
+      img.onload = () => {
+        // 이 부분은 setOriginalImageSize가 비동기 콜백 내에 있으므로,
+        // processImageFile의 직접적인 의존성으로 보기 어려움.
+        // useState의 setter는 일반적으로 의존성 배열에 포함하지 않아도 됨.
+        setOriginalImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  }, [setLeftEyeImage, setRightEyeImage, setEyeStatus /* setOriginalImageSize는 setter이므로 제외 가능 */]);
+
   // 이미지 업로드 핸들러
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, eye: 'left' | 'right') => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (eye === 'left') {
-          setLeftEyeImage(reader.result as string);
-          setEyeStatus(prev => ({
-            ...prev,
-            step1: {
-              ...prev.step1,
-              left: true
-            }
-          }));
-        } else {
-          setRightEyeImage(reader.result as string);
-          setEyeStatus(prev => ({
-            ...prev,
-            step1: {
-              ...prev.step1,
-              right: true
-            }
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+      processImageFile(file, eye);
     }
   };
+
+  // 붙여넣기로 이미지 업로드 핸들러
+  const handlePaste = useCallback((event: Event) => {
+    const clipboardEvent = event as ClipboardEvent; // 타입 단언
+    if (currentStep === 1 && selectedPatient) {
+      const items = clipboardEvent.clipboardData?.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            if (file) {
+              processImageFile(file, selectedEye); 
+              event.preventDefault(); 
+              break; 
+            }
+          }
+        }
+      }
+    }
+  }, [currentStep, selectedPatient, selectedEye, processImageFile]);
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [handlePaste]);
 
   // 10) 단계별 메인 내용 렌더링
   const renderStep = () => {
@@ -773,7 +810,10 @@ const Analysis: React.FC = () => {
                 <div className="upload-section">
                   <div className="upload-container">
                     <span className="upload-label">왼쪽 안저 사진</span>
-                    <div className="upload-box">
+                    <div 
+                      className="upload-box"
+                      onClick={() => leftEyeInputRef.current?.click()}
+                    >
                       {leftEyeImage ? (
                         <img src={leftEyeImage} alt="왼쪽 안저 사진" />
                       ) : (
@@ -781,23 +821,25 @@ const Analysis: React.FC = () => {
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
+                          <span>클릭하여 사진 선택</span>
                         </div>
                       )}
                     </div>
-                    <label className="upload-button">
-                      업로드하기
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, 'left')}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'left')}
+                      style={{ display: 'none' }}
+                      ref={leftEyeInputRef}
+                    />
                   </div>
 
                   <div className="upload-container">
                     <span className="upload-label">오른쪽 안저 사진</span>
-                    <div className="upload-box">
+                    <div 
+                      className="upload-box"
+                      onClick={() => rightEyeInputRef.current?.click()}
+                    >
                       {rightEyeImage ? (
                         <img src={rightEyeImage} alt="오른쪽 안저 사진" />
                       ) : (
@@ -805,18 +847,17 @@ const Analysis: React.FC = () => {
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
+                          <span>클릭하여 사진 선택</span>
                         </div>
                       )}
                     </div>
-                    <label className="upload-button">
-                      업로드하기
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, 'right')}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'right')}
+                      style={{ display: 'none' }}
+                      ref={rightEyeInputRef}
+                    />
                   </div>
                 </div>
 

@@ -1197,7 +1197,6 @@
   transition: all 0.2s ease;
 }
 
-
 .upload-box img {
   width: 100%;
   height: 100%;
@@ -1206,7 +1205,43 @@
 }
 
 .upload-placeholder {
-  color: #9CA3AF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 16px;
+  text-align: center;
+  background-color: transparent;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.upload-placeholder svg {
+  width: 48px;
+  height: 48px;
+  color: #A0A0A0;
+  margin-bottom: 12px;
+  transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.upload-placeholder span {
+  font-size: 15px;
+  color: #777;
+  line-height: 1.4;
+  transition: color 0.2s ease-in-out;
+}
+
+.upload-placeholder:hover {
+  background-color: #f0f0f0;
+}
+
+.upload-placeholder:hover svg {
+  color: #4200FF;
+  transform: scale(1.05);
+}
+
+.upload-placeholder:hover span {
+  color: #555;
 }
 
 .upload-button {
