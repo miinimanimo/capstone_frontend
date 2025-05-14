@@ -71,6 +71,10 @@ const Analysis: React.FC = () => {
   const leftEyeInputRef = useRef<HTMLInputElement>(null);
   const rightEyeInputRef = useRef<HTMLInputElement>(null);
 
+  // 각 업로드 영역 호버 상태
+  const [isHoveringLeftEyeDropzone, setIsHoveringLeftEyeDropzone] = useState<boolean>(false);
+  const [isHoveringRightEyeDropzone, setIsHoveringRightEyeDropzone] = useState<boolean>(false);
+
   // Superpixel 관련 상태
   const [superpixelData, setSuperpixelData] = useState<SuperpixelData | null>(null);
   const [selectedSuperpixels, setSelectedSuperpixels] = useState<{[key: string]: number[]}>({});
@@ -732,7 +736,7 @@ const Analysis: React.FC = () => {
 
   // 붙여넣기로 이미지 업로드 핸들러
   const handlePaste = useCallback((event: Event) => {
-    const clipboardEvent = event as ClipboardEvent; // 타입 단언
+    const clipboardEvent = event as ClipboardEvent; 
     if (currentStep === 1 && selectedPatient) {
       const items = clipboardEvent.clipboardData?.items;
       if (items) {
@@ -740,15 +744,24 @@ const Analysis: React.FC = () => {
           if (items[i].type.indexOf('image') !== -1) {
             const file = items[i].getAsFile();
             if (file) {
-              processImageFile(file, selectedEye); 
-              event.preventDefault(); 
-              break; 
+              let targetEye: 'left' | 'right' | null = null;
+              if (isHoveringLeftEyeDropzone) {
+                targetEye = 'left';
+              } else if (isHoveringRightEyeDropzone) {
+                targetEye = 'right';
+              }
+
+              if (targetEye) {
+                processImageFile(file, targetEye); 
+                event.preventDefault(); 
+                break; 
+              }
             }
           }
         }
       }
     }
-  }, [currentStep, selectedPatient, selectedEye, processImageFile]);
+  }, [currentStep, selectedPatient, processImageFile, isHoveringLeftEyeDropzone, isHoveringRightEyeDropzone]);
 
   useEffect(() => {
     window.addEventListener('paste', handlePaste);
@@ -813,6 +826,8 @@ const Analysis: React.FC = () => {
                     <div 
                       className="upload-box"
                       onClick={() => leftEyeInputRef.current?.click()}
+                      onMouseEnter={() => setIsHoveringLeftEyeDropzone(true)}
+                      onMouseLeave={() => setIsHoveringLeftEyeDropzone(false)}
                     >
                       {leftEyeImage ? (
                         <img src={leftEyeImage} alt="왼쪽 안저 사진" />
@@ -821,7 +836,7 @@ const Analysis: React.FC = () => {
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
-                          <span>클릭하여 사진 선택</span>
+                          <span>클릭하거나 붙여넣기 하여 사진 업로드</span>
                         </div>
                       )}
                     </div>
@@ -839,6 +854,8 @@ const Analysis: React.FC = () => {
                     <div 
                       className="upload-box"
                       onClick={() => rightEyeInputRef.current?.click()}
+                      onMouseEnter={() => setIsHoveringRightEyeDropzone(true)}
+                      onMouseLeave={() => setIsHoveringRightEyeDropzone(false)}
                     >
                       {rightEyeImage ? (
                         <img src={rightEyeImage} alt="오른쪽 안저 사진" />
@@ -847,7 +864,7 @@ const Analysis: React.FC = () => {
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
-                          <span>클릭하여 사진 선택</span>
+                          <span>클릭하거나 붙여넣기 하여 사진 업로드</span>
                         </div>
                       )}
                     </div>
