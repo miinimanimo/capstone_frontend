@@ -1,14 +1,35 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
 
+  // 각 섹션 ref 생성
+  const servicesRef = useRef<HTMLDivElement>(null);
+  const processRef = useRef<HTMLDivElement>(null);
+  const statsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sections = [servicesRef.current, processRef.current, statsRef.current];
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('show');
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+    sections.forEach(sec => sec && observer.observe(sec));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="home-container">
       <nav className="home-nav">
-        <div className="nav-logo">보고</div>
+        <a className="nav-logo" href="/">보고</a>
         <div className="nav-links">
           <a href="#" className="nav-link">진단하기</a>
           <a href="#" className="nav-link">통계/분석</a>
@@ -26,10 +47,10 @@ const Home: React.FC = () => {
               <span className="hero-subtitle">안구질환 진단</span>
             </h1>
             <p className="hero-description">
-              인공지능 기술을 활용한 정확하고 신속한 안구질환 진단 서비스를 제공합니다.
-              <br />전문의의 검수를 거친 신뢰할 수 있는 결과를 경험하세요.
+              AI로 쉽고 빠르게 안구질환을 진단하세요.<br />
+              전문의가 검수한 신뢰할 수 있는 결과를 제공합니다.
             </p>
-            <div className="hero-buttons">
+            <div className="hero-buttons same-size-buttons">
               <button className="primary-button" onClick={() => navigate('/analysis')}>진단하기</button>
               <button className="secondary-button">서비스 소개</button>
             </div>
@@ -42,7 +63,7 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        <section className="services-section">
+        <section className="services-section hidden" ref={servicesRef}>
           <h2 className="section-title">주요 서비스</h2>
           <p className="section-subtitle">AI 기술을 활용한 정확한 안구질환 진단 서비스를 제공합니다</p>
           
@@ -52,7 +73,7 @@ const Home: React.FC = () => {
               <h3>AI 진단</h3>
               <p>인공지능 기반의 정확한 안구질환 진단</p>
             </div>
-            <div className="service-card active">
+            <div className="service-card">
               <div className="service-icon review-icon"></div>
               <h3>전문의 검수</h3>
               <p>전문의의 검수를 통한 신뢰성 확보</p>
@@ -70,7 +91,7 @@ const Home: React.FC = () => {
           </div>
         </section>
 
-        <section className="process-section">
+        <section className="process-section hidden" ref={processRef}>
           <h2 className="section-title">진단 과정</h2>
           <p className="section-subtitle">3단계의 간단한 과정으로 정확한 진단 결과를 받아보세요</p>
           
@@ -94,7 +115,7 @@ const Home: React.FC = () => {
           <button className="primary-button" onClick={() => navigate('/analysis')}>지금 시작하기</button>
         </section>
 
-        <section className="stats-section">
+        <section className="stats-section hidden" ref={statsRef}>
           <h2 className="section-title">진단 통계</h2>
           <p className="section-subtitle">신뢰할 수 있는 진단 결과를 제공합니다</p>
           
