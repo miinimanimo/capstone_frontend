@@ -82,6 +82,8 @@ const Analysis: React.FC = () => {
   // 원본 이미지 크기 저장
   const [originalImageSize, setOriginalImageSize] = useState<{width: number, height: number} | null>(null);
 
+  const justDraggedRef = useRef(false); // 드래그 직후 클릭 방지용 ref
+
   // 1) 사이드바 단계 정의
   const steps = [
     {
@@ -199,6 +201,10 @@ const Analysis: React.FC = () => {
     if (imageRef.current) {
       imageRef.current.classList.remove('dragging');
     }
+    justDraggedRef.current = true;
+    setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 0); // 다음 이벤트 루프에서 false로 설정
   };
 
   // 6) 병변(lesion) 여러 개 선택
@@ -527,6 +533,7 @@ const Analysis: React.FC = () => {
 
   // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (justDraggedRef.current) return; // 드래그 직후 클릭 방지
     if (!currentLesion) return;
     if (!showGrid && !showSuperpixel) return;
 
