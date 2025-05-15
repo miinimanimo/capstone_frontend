@@ -610,6 +610,44 @@ const Analysis: React.FC = () => {
     drawCanvas();
   }, [imageSize, imagePosition, drawCanvas]);
 
+  // 방향키로 이미지 이동 (3단계에서만)
+  useEffect(() => {
+    if (currentStep !== 3) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      let moved = false;
+      let dx = 0, dy = 0;
+      const moveAmount = 10;
+      switch (e.key) {
+        case 'ArrowLeft':
+          dx = moveAmount; // ←키는 x를 +로
+          moved = true;
+          break;
+        case 'ArrowRight':
+          dx = -moveAmount; // →키는 x를 -로
+          moved = true;
+          break;
+        case 'ArrowUp':
+          dy = moveAmount; // ↑키는 y를 +로
+          moved = true;
+          break;
+        case 'ArrowDown':
+          dy = -moveAmount; // ↓키는 y를 -로
+          moved = true;
+          break;
+        default:
+          break;
+      }
+      if (moved) {
+        e.preventDefault();
+        setImagePosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentStep]);
+
   // 8) 단계별 버튼 렌더링
   const renderStepButtons = () => {
     switch (currentStep) {
