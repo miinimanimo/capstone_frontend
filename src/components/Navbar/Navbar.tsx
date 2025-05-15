@@ -4,10 +4,12 @@ import './Navbar.css';
 
 const Navbar: React.FC = () => {
   return (
-    <nav className="navbar">
+    <nav className="navbar glass-navbar">
       <div className="navbar-brand">
         <Link to="/">
-          <h1>Diavision</h1>
+          <h1>
+            <span className="logo-gradient">Diavision</span>
+          </h1>
         </Link>
       </div>
       <ul className="navbar-links">
@@ -18,7 +20,7 @@ const Navbar: React.FC = () => {
       </ul>
       <div className="navbar-auth">
         <button className="login-btn">로그인</button>
-        <button className="signup-btn">회원가입</button>
+        <button className="signup-btn gradient-btn">회원가입</button>
       </div>
     </nav>
   );

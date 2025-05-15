@@ -2,80 +2,107 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.2rem 3rem;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(75,25,229,0.08);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  height: 70px;
+  height: 72px;
+  border-radius: 0 0 2rem 2rem;
+  border-bottom: 1.5px solid rgba(75,25,229,0.08);
+  transition: background 0.3s, box-shadow 0.3s;
 }
 
-.navbar-brand h1 {
-  font-size: 1.8rem;
-  color: #2c3e50;
-  margin: 0;
-  font-weight: 700;
-  cursor: pointer;
+.logo-gradient {
+  background: linear-gradient(90deg, #4B19E5 60%, #7C3AED 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  font-size: 2.1rem;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 8px rgba(75,25,229,0.08);
 }
 
 .navbar-links {
   display: flex;
   list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 2rem;
+  gap: 2.5rem;
 }
 
 .navbar-links a {
   text-decoration: none;
-  color: #34495e;
-  font-weight: 500;
-  transition: color 0.2s ease;
+  color: #2c3e50;
+  font-weight: 600;
   font-size: 1.1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
 }
 
 .navbar-links a:hover {
-  color: #3498db;
-  background-color: #f8f9fa;
+  color: #4B19E5;
+  background: rgba(75,25,229,0.07);
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(75,25,229,0.08);
 }
 
 .navbar-auth {
   display: flex;
-  gap: 1rem;
-}
-
-.navbar-auth button {
-  padding: 0.5rem 1.2rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  font-size: 1rem;
+  gap: 1.2rem;
 }
 
 .login-btn {
-  background-color: transparent;
-  color: #2c3e50;
-  border: 1px solid #2c3e50;
+  background: transparent;
+  color: #4B19E5;
+  border: 1.5px solid #4B19E5;
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
 }
 
 .login-btn:hover {
-  background-color: #f8f9fa;
+  background: #F5F3FF;
+  color: #3910B0;
+  box-shadow: 0 2px 8px rgba(75,25,229,0.10);
 }
 
-.signup-btn {
-  background-color: #3498db;
-  color: white;
+.signup-btn.gradient-btn {
+  background: linear-gradient(90deg, #4B19E5 60%, #7C3AED 100%);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 0.5rem 1.7rem;
+  box-shadow: 0 4px 16px rgba(75,25,229,0.13);
+  transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
 }
 
-.signup-btn:hover {
-  background-color: #2980b9;
+.signup-btn.gradient-btn:hover {
+  background: linear-gradient(90deg, #7C3AED 0%, #4B19E5 100%);
+  box-shadow: 0 8px 32px rgba(75,25,229,0.18);
+  transform: translateY(-2px) scale(1.04);
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    padding: 1rem 1.2rem;
+    height: 60px;
+    border-radius: 0 0 1rem 1rem;
+  }
+  .logo-gradient {
+    font-size: 1.3rem;
+  }
+  .navbar-links {
+    gap: 1.2rem;
+  }
+  .navbar-auth {
+    gap: 0.7rem;
+  }
 }
 
 /* PC 최적화 스타일 */
