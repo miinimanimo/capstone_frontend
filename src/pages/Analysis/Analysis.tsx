@@ -113,6 +113,13 @@ const Analysis: React.FC = () => {
   const handlePrev = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      // 3단계에서 2단계로 돌아갈 때 상태 초기화
+      setImagePosition({ x: 0, y: 0 });
+      setImageSize(100);
+      setShowSuperpixel(false);
+      setShowGrid(false);
+      setSelectedPixels({});
+      setSelectedSuperpixels({});
     }
   };
 
@@ -309,6 +316,13 @@ const Analysis: React.FC = () => {
 
   // Grid와 Superpixel 그리기 함수
   const drawCanvas = useCallback(() => {
+    // 디버깅용 로그
+    console.log('[drawCanvas 호출]', {
+      currentLesion,
+      selectedSuperpixels,
+      showSuperpixel,
+      superpixelDataLoaded: !!superpixelData
+    });
     const canvas = canvasRef.current;
     const container = imageRef.current;
     if (!canvas || !container) return;
@@ -532,7 +546,10 @@ const Analysis: React.FC = () => {
   }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition]);
 
   // 캔버스 클릭 핸들러 수정
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleCanvasClick = useCallback((e: any) => {
+    console.log('[handleCanvasClick 진입]');
+    if (e.preventDefault && typeof e.preventDefault === 'function') e.preventDefault();
+    if (e.stopPropagation && typeof e.stopPropagation === 'function') e.stopPropagation();
     if (justDraggedRef.current) return; // 드래그 직후 클릭 방지
     if (!currentLesion) return;
     if (!showGrid && !showSuperpixel) return;
@@ -559,40 +576,46 @@ const Analysis: React.FC = () => {
       setSelectedPixels(prev => {
         const currentPixels = prev[currentLesion] || [];
         const newPixels = { ...prev };
-        
         if (currentPixels.includes(pixelIndex)) {
           newPixels[currentLesion] = currentPixels.filter(p => p !== pixelIndex);
         } else {
           newPixels[currentLesion] = [...currentPixels, pixelIndex];
         }
-        
         return newPixels;
       });
     }
 
     if (showSuperpixel && superpixelData) {
-      // 수퍼픽셀 모드에서의 선택
       const { width, height } = superpixelData.imageInfo;
       const { labels } = superpixelData.slicResult;
-      
       const imgX = Math.floor((x / canvas.width) * width);
       const imgY = Math.floor((y / canvas.height) * height);
-      
+
+      // 디버깅 로그 추가
+      console.log('[Superpixel 클릭 시도]', { x, y, imgX, imgY, width, height });
+
       if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
         const selectedLabel = labels[imgY][imgX];
+        console.log('[Superpixel 클릭] label:', selectedLabel);
+
+        if (selectedLabel === -1) {
+          console.log('[Superpixel 클릭] 배경(-1) 클릭, 무시');
+          return;
+        }
 
         setSelectedSuperpixels(prev => {
           const currentSuperpixels = prev[currentLesion] || [];
           const newSuperpixels = { ...prev };
-
           if (currentSuperpixels.includes(selectedLabel)) {
             newSuperpixels[currentLesion] = currentSuperpixels.filter(l => l !== selectedLabel);
           } else {
             newSuperpixels[currentLesion] = [...currentSuperpixels, selectedLabel];
           }
-
+          console.log('[Superpixel 클릭] currentLesion:', currentLesion, 'selectedLabel:', selectedLabel, 'newSuperpixels:', newSuperpixels);
           return newSuperpixels;
         });
+      } else {
+        console.log('[Superpixel 클릭] 이미지 영역 밖 클릭');
       }
     }
   }, [currentLesion, showGrid, showSuperpixel, superpixelData]);
@@ -1207,14 +1230,20 @@ const Analysis: React.FC = () => {
                   />
                   <canvas
                     ref={canvasRef}
-                    onClick={handleCanvasClick}
+                    onMouseDown={(e) => {
+                      console.log('canvas onMouseDown fired');
+                      handleCanvasClick(e);
+                    }}
                     style={{
                       position: 'absolute',
-                      top: '50%',
-                      left: '50%',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
                       pointerEvents: 'auto',
-                      transform: `translate(-50%, -50%) scale(${imageSize / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
-                      transformOrigin: 'center'
+                      zIndex: 2,
+                      cursor: 'crosshair',
+                      background: 'rgba(255,0,0,0.1)'
                     }}
                   />
                 </div>
