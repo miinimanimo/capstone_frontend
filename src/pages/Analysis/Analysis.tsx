@@ -1243,7 +1243,7 @@ const Analysis: React.FC = () => {
                       pointerEvents: 'auto',
                       zIndex: 2,
                       cursor: 'crosshair',
-                      background: 'rgba(255,0,0,0.1)'
+                      background: 'transparent'
                     }}
                   />
                 </div>
