@@ -11,7 +11,7 @@ import Navbar from './components/Navbar/Navbar';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/capstone_frontend">
       <div className="app">
         <Navbar />
         <div className="content">
