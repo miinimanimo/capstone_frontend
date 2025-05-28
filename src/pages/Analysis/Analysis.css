@@ -144,7 +144,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .step-2 .info-group,
@@ -224,9 +224,13 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto;
 }
 
-.diagnosis-top-row {
+.combined-diagnosis-container {
   display: flex;
   gap: 2rem;
 }
@@ -237,9 +241,18 @@
   border-radius: 1.25rem;
   padding: 2rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
 }
 
-.diagnosis-section h3 {
+.severity-section {
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.severity-section h3 {
   margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
   color: #111827;
@@ -249,6 +262,7 @@
 .severity-list {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .severity-header {
@@ -267,6 +281,12 @@
   padding: 1rem 0;
   font-size: 0.9rem;
   border-bottom: 1px solid #F3F4F6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.severity-item:hover {
+  background: #F8F9FA;
 }
 
 .severity-label {
@@ -278,26 +298,24 @@
   font-weight: 500;
 }
 
-.interest-region-container {
+.interest-region-section {
   flex: 1;
-  background: white;
-  border-radius: 1.25rem;
-  padding: 2rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
+  align-items: flex-start;
 }
 
-.interest-region-container h3 {
-  margin: 0 0 1.5rem 0;
+.interest-region-section h3 {
+  margin: 0;
   font-size: 1.25rem;
   color: #111827;
   font-weight: 600;
 }
 
-.interest-region-container img {
-  width: 100%;
-  height: 300px;
+.interest-region-section img {
+  width: 400px;
+  height: 400px;
   object-fit: contain;
   border-radius: 0.75rem;
   background: black;
@@ -314,7 +332,7 @@
 }
 
 .detection-section {
-  width: 320px;
+  width: 400px;
   display: flex;
   flex-direction: column;
 }
@@ -362,6 +380,7 @@
 .detection-list {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .detection-list .detection-header {
@@ -411,13 +430,14 @@
   flex: 1;
   display: flex;
   align-items: flex-start;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding: 0;
+  min-height: 400px;
 }
 
 .detection-image img {
-  width: 500px;
-  height: 500px;
+  width: 400px;
+  height: 400px;
   object-fit: contain;
   border-radius: 0.75rem;
 }

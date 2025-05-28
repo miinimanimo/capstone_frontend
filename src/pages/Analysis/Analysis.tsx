@@ -904,7 +904,7 @@ const Analysis: React.FC = () => {
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
-                          <span>클릭하거나 붙여넣기 하여 사진 업로드</span>
+                          <span>클릭하거나 붙여넣어 사진 업로드</span>
                         </div>
                       )}
                     </div>
@@ -932,7 +932,7 @@ const Analysis: React.FC = () => {
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
-                          <span>클릭하거나 붙여넣기 하여 사진 업로드</span>
+                          <span>클릭하거나 붙여넣어 사진 업로드</span>
                         </div>
                       )}
                     </div>
@@ -1015,42 +1015,44 @@ const Analysis: React.FC = () => {
             </div>
 
             <div className="diagnosis-container">
-              <div className="diagnosis-top-row">
+              <div className="combined-diagnosis-container">
                 <div className="diagnosis-section">
-                  <h3>{selectedEye === 'left' ? '좌안' : '우안'} 중증도 AI 진단</h3>
-                  <div className="severity-list">
-                    <div className="severity-header">
-                      <span>중증도</span>
-                      <span>신뢰도</span>
-                    </div>
-                    <div className="severity-item">
-                      <div className="severity-label">
-                        비증식성 당뇨망막병증(NPDR) - Mild
+                  <div className="severity-section">
+                    <h3>{selectedEye === 'left' ? '좌안' : '우안'} 중증도 AI 진단</h3>
+                    <div className="severity-list">
+                      <div className="severity-header">
+                        <span>중증도</span>
+                        <span>신뢰도</span>
                       </div>
-                      <div className="severity-value">78%</div>
-                    </div>
-                    <div className="severity-item">
-                      <div className="severity-label">
-                        비증식성 당뇨망막병증(NPDR) - Moderate
+                      <div className="severity-item">
+                        <div className="severity-label">
+                          비증식성 당뇨망막병증(NPDR) - Mild
+                        </div>
+                        <div className="severity-value">78%</div>
                       </div>
-                      <div className="severity-value">12%</div>
-                    </div>
-                    <div className="severity-item">
-                      <div className="severity-label">
-                        비증식성 당뇨망막병증(NPDR) - Severe
+                      <div className="severity-item">
+                        <div className="severity-label">
+                          비증식성 당뇨망막병증(NPDR) - Moderate
+                        </div>
+                        <div className="severity-value">12%</div>
                       </div>
-                      <div className="severity-value">6%</div>
-                    </div>
-                    <div className="severity-item">
-                      <div className="severity-label">증식성 당뇨망막병증(PDR)</div>
-                      <div className="severity-value">6%</div>
+                      <div className="severity-item">
+                        <div className="severity-label">
+                          비증식성 당뇨망막병증(NPDR) - Severe
+                        </div>
+                        <div className="severity-value">6%</div>
+                      </div>
+                      <div className="severity-item">
+                        <div className="severity-label">증식성 당뇨망막병증(PDR)</div>
+                        <div className="severity-value">6%</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="interest-region-container">
-                  <h3>Interest Region</h3>
-                  <img src="https://miinimanimo.github.io/capstone_frontend/images/ig.jpeg" alt="Interest Region" />
+                  
+                  <div className="interest-region-section">
+                    <h3>Interest Region</h3>
+                    <img src="https://miinimanimo.github.io/capstone_frontend/images/ig.jpeg" alt="Interest Region" />
+                  </div>
                 </div>
               </div>
 

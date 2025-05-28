@@ -12,16 +12,16 @@ import Navbar from './components/Navbar/Navbar';
 function App() {
   return (
     <Router>
-      <div className="App">
+      <div className="app">
         <Navbar />
-        <div className="content-wrapper">
+        <div className="content">
           <Routes>
+            <Route path="/home" element={<Home />} />
+            <Route path="/analysis" element={<Analysis />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/patient-registration" element={<PatientRegistration />} />
             <Route path="/mypage" element={<MyPage />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/analysis" element={<Analysis />} />
             <Route path="/" element={<Navigate to="/home" replace />} />
           </Routes>
         </div>
