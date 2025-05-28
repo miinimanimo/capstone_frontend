@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
@@ -11,7 +11,7 @@ import Navbar from './components/Navbar/Navbar';
 
 function App() {
   return (
-    <Router basename="/capstone_frontend">
+    <Router>
       <div className="app">
         <Navbar />
         <div className="content">
