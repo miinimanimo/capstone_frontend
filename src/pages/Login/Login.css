@@ -1,0 +1,122 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%);
+}
+
+.login-box {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  padding: 3rem;
+  border-radius: 2rem;
+  box-shadow: 0 8px 32px rgba(75, 25, 229, 0.08);
+  width: 100%;
+  max-width: 480px;
+  border: 1.5px solid rgba(75, 25, 229, 0.08);
+}
+
+.login-box h2 {
+  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  text-align: center;
+  background: linear-gradient(90deg, #4B19E5 60%, #7C3AED 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #4B5563;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 1rem;
+  border: 1.5px solid rgba(75, 25, 229, 0.1);
+  border-radius: 1rem;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #4B19E5;
+  box-shadow: 0 0 0 4px rgba(75, 25, 229, 0.1);
+}
+
+.login-button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(90deg, #4B19E5 60%, #7C3AED 100%);
+  color: white;
+  border: none;
+  border-radius: 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(75, 25, 229, 0.2);
+}
+
+.error-message {
+  color: #EF4444;
+  background: #FEE2E2;
+  padding: 1rem;
+  border-radius: 1rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.signup-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #4B5563;
+}
+
+.signup-link span {
+  color: #4B19E5;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.signup-link span:hover {
+  color: #7C3AED;
+}
+
+@media (max-width: 768px) {
+  .login-box {
+    padding: 2rem;
+  }
+  
+  .login-box h2 {
+    font-size: 1.8rem;
+  }
+  
+  .form-group input {
+    padding: 0.8rem;
+  }
+  
+  .login-button {
+    padding: 0.8rem;
+  }
+} 
