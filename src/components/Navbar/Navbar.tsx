@@ -4,7 +4,7 @@ import './Navbar.css';
 
 const Navbar: React.FC = () => {
   return (
-    <nav className="navbar glass-navbar">
+    <nav className="navbar">
       <div className="navbar-brand">
         <Link to="/home">
           <h1>
@@ -19,7 +19,7 @@ const Navbar: React.FC = () => {
         <li><Link to="/mypage">마이페이지</Link></li>
       </ul>
       <div className="navbar-auth">
-        <Link to="/login"><button className="login-btn">로그인</button></Link>
+        <Link to="/login" className="login-link">로그인</Link>
       </div>
     </nav>
   );

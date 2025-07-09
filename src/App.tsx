@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Login from './pages/Login/Login';
-import SignUp from './pages/SignUp/SignUp';
 import PatientRegistration from './pages/PatientRegistration/PatientRegistration';
 import MyPage from './pages/MyPage/MyPage';
 import Home from './pages/Home/Home';
@@ -19,7 +18,6 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/analysis" element={<Analysis />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
             <Route path="/patient-registration" element={<PatientRegistration />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/" element={<Navigate to="/home" replace />} />
