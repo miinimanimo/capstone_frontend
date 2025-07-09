@@ -343,9 +343,17 @@ const Analysis: React.FC = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (showGrid) {
+      // 확대/이동 적용
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // 초기화
+      const zoomScale = imageSize / 100;
+      ctx.translate(canvas.width / 2, canvas.height / 2); // 중심 이동
+      ctx.scale(zoomScale, zoomScale); // 확대
+      ctx.translate(imagePosition.x, imagePosition.y); // 이동
+      ctx.translate(-canvas.width / 2, -canvas.height / 2); // 다시 원점
+
       // 그리드 그리기 (기존 코드)
-      const cellWidth = rect.width / 200;
-      const cellHeight = rect.height / 200;
+      const cellWidth = canvas.width / 200;
+      const cellHeight = canvas.height / 200;
 
       // 모든 선택된 병변의 픽셀들 그리기
       Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
@@ -398,6 +406,8 @@ const Analysis: React.FC = () => {
         ctx.lineTo(canvas.width, i * cellHeight);
         ctx.stroke();
       }
+      // transform 초기화 (다른 모드 영향 방지)
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
     if (showSuperpixel && superpixelData && originalImageSize) {
