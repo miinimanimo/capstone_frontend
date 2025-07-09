@@ -6,8 +6,7 @@ interface PatientData {
   name: string;
   age: string;
   gender: string;
-  phoneNumber: string;
-  address: string;
+  diabetesYear: string; // 추가
   medicalHistory: string;
 }
 
@@ -16,8 +15,7 @@ const PatientRegistration: React.FC = () => {
     name: '',
     age: '',
     gender: '',
-    phoneNumber: '',
-    address: '',
+    diabetesYear: '', // 추가
     medicalHistory: ''
   });
   const [error, setError] = useState('');
@@ -33,7 +31,7 @@ const PatientRegistration: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (patientData.name && patientData.age && patientData.gender) {
+    if (patientData.name && patientData.age && patientData.gender && patientData.diabetesYear) {
       // 환자 등록 성공 시 홈으로 이동
       navigate('/');
     } else {
@@ -47,62 +45,64 @@ const PatientRegistration: React.FC = () => {
         <h2>환자 등록</h2>
         {error && <p className="error-message">{error}</p>}
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="name">환자 성명 *</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={patientData.name}
-              onChange={handleChange}
-              required
-            />
+          {/* 2개씩 가로 배치: 이름/나이 */}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="name">환자 성명 *</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={patientData.name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="age">나이 *</label>
+              <input
+                type="number"
+                id="age"
+                name="age"
+                value={patientData.age}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="age">나이 *</label>
-            <input
-              type="number"
-              id="age"
-              name="age"
-              value={patientData.age}
-              onChange={handleChange}
-              required
-            />
+          {/* 2개씩 가로 배치: 성별/진단년도 */}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="gender">성별 *</label>
+              <select
+                id="gender"
+                name="gender"
+                value={patientData.gender}
+                onChange={handleChange}
+                required
+              >
+                <option value="">선택하세요</option>
+                <option value="male">남성</option>
+                <option value="female">여성</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label htmlFor="diabetesYear">당뇨 진단년도 *</label>
+              <select
+                id="diabetesYear"
+                name="diabetesYear"
+                value={patientData.diabetesYear}
+                onChange={handleChange}
+                required
+              >
+                <option value="">선택하세요</option>
+                {Array.from({length: new Date().getFullYear() - 1899}, (_, i) => 1900 + i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="gender">성별 *</label>
-            <select
-              id="gender"
-              name="gender"
-              value={patientData.gender}
-              onChange={handleChange}
-              required
-            >
-              <option value="">선택하세요</option>
-              <option value="male">남성</option>
-              <option value="female">여성</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="phoneNumber">연락처</label>
-            <input
-              type="tel"
-              id="phoneNumber"
-              name="phoneNumber"
-              value={patientData.phoneNumber}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="address">주소</label>
-            <input
-              type="text"
-              id="address"
-              name="address"
-              value={patientData.address}
-              onChange={handleChange}
-            />
-          </div>
+          {/* 과거 병력은 한 줄 전체 */}
           <div className="form-group">
             <label htmlFor="medicalHistory">과거 병력</label>
             <textarea
