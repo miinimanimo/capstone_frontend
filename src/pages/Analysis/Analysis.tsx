@@ -644,43 +644,34 @@ const Analysis: React.FC = () => {
     drawCanvas();
   }, [imageSize, imagePosition, drawCanvas]);
 
-  // 방향키로 이미지 이동 (3단계에서만)
-  useEffect(() => {
-    if (currentStep !== 3) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      let moved = false;
-      let dx = 0, dy = 0;
-      const moveAmount = 10;
-      switch (e.key) {
-        case 'ArrowLeft':
-          dx = moveAmount; // ←키는 x를 +로
-          moved = true;
-          break;
-        case 'ArrowRight':
-          dx = -moveAmount; // →키는 x를 -로
-          moved = true;
-          break;
-        case 'ArrowUp':
-          dy = moveAmount; // ↑키는 y를 +로
-          moved = true;
-          break;
-        case 'ArrowDown':
-          dy = -moveAmount; // ↓키는 y를 -로
-          moved = true;
-          break;
-        default:
-          break;
-      }
-      if (moved) {
-        e.preventDefault();
-        setImagePosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [currentStep]);
+  // 방향키로 이미지 이동 (3단계에서만, throttle + press & hold 지원)
+  const moveInterval = useRef<NodeJS.Timeout | null>(null);
+  const lastMoveTime = useRef(0);
+  const THROTTLE_MS = 16; // 60fps 기준
+
+  // 아래 추가: 이미지 이동 핸들러를 props로 전달
+  const handleImageKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    let dx = 0, dy = 0;
+    const moveAmount = 10;
+    switch (e.key) {
+      case 'ArrowLeft':
+        dx = moveAmount;
+        break;
+      case 'ArrowRight':
+        dx = -moveAmount;
+        break;
+      case 'ArrowUp':
+        dy = moveAmount;
+        break;
+      case 'ArrowDown':
+        dy = -moveAmount;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setImagePosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+  };
 
   // 8) 단계별 버튼 렌더링
   const renderStepButtons = () => {
@@ -860,10 +851,10 @@ const Analysis: React.FC = () => {
             setIsHoveringRightEyeDropzone={setIsHoveringRightEyeDropzone}
             handleImageUpload={handleImageUpload}
             onAnalyze={() => {
-              if (leftEyeImage && rightEyeImage) {
-                setCurrentStep(2);
-              }
-            }}
+                    if (leftEyeImage && rightEyeImage) {
+                      setCurrentStep(2);
+                    }
+                  }}
           />
         );
       case 2:
@@ -884,7 +875,7 @@ const Analysis: React.FC = () => {
             imageSize={imageSize}
             imagePosition={imagePosition}
             handleImageLoad={handleImageLoad}
-          />
+                  />
         );
       case 3:
         return (
@@ -918,6 +909,7 @@ const Analysis: React.FC = () => {
             selectedLesions={selectedLesions}
             selectedPixels={selectedPixels}
             handleLesionSelect={handleLesionSelect}
+            handleImageKeyDown={handleImageKeyDown}
           />
         );
       default:

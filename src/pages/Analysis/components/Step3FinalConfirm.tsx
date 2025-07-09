@@ -31,6 +31,7 @@ interface Step3FinalConfirmProps {
   selectedLesions: string[];
   selectedPixels: { [key: string]: number[] };
   handleLesionSelect: (id: string) => void;
+  handleImageKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 }
 
 const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
@@ -63,8 +64,15 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
   selectedLesions,
   selectedPixels,
   handleLesionSelect,
+  handleImageKeyDown,
 }) => {
   const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
+  const imageDivRef = imageRef as React.RefObject<HTMLDivElement>;
+  React.useEffect(() => {
+    if (imageDivRef.current) {
+      imageDivRef.current.focus();
+    }
+  }, [imageDivRef]);
   return (
     <div className="step-content step-3">
       <div className="patient-info-header">
@@ -120,11 +128,19 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
           <div
             className="main-eye-image"
             ref={imageRef}
-            onMouseDown={handleMouseDown}
+            tabIndex={0}
+            onKeyDown={handleImageKeyDown}
+            onMouseDown={e => {
+              handleMouseDown(e);
+              if (e.currentTarget) e.currentTarget.focus();
+            }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
+            onMouseEnter={e => {
+              if (e.currentTarget) e.currentTarget.focus();
+            }}
             style={{ touchAction: 'none' }}
           >
             <img
