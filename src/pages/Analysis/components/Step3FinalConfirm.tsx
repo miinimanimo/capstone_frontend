@@ -132,8 +132,9 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
               alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
               onLoad={handleImageLoad}
               style={{
-                transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
-                transformOrigin: 'center center'
+                transform: `translate(-50%, -50%) scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                transformOrigin: 'center center',
+                transition: undefined // 키보드 이동시 버벅임 방지
               }}
               draggable={false}
             />
@@ -177,9 +178,6 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
                 >
                   <span className="color-dot"></span>
                   {lesion.name}
-                  {selectedPixels[lesion.id]?.length > 0 && (
-                    <span className="segment-count">({selectedPixels[lesion.id].length})</span>
-                  )}
                 </div>
               ))}
             </div>
