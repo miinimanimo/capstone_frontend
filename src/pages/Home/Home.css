@@ -55,17 +55,6 @@
   transition: all 0.2s;
 }
 
-.nav-button.sign-up {
-  background: #4B19E5;
-  border: none;
-  color: white;
-  box-shadow: none;
-}
-
-.nav-button.sign-up:hover {
-  background: #3910B0;
-}
-
 .home-main {
   padding-top: 80px;
 }
@@ -181,16 +170,6 @@
 .membership-text {
   color: #6B7280;
   font-size: 0.875rem;
-}
-
-.sign-up-link {
-  color: #4B19E5;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.sign-up-link:hover {
-  text-decoration: underline;
 }
 
 .hero-image {

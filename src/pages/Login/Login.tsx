@@ -47,9 +47,7 @@ const Login: React.FC = () => {
           </div>
           <button type="submit" className="login-button">로그인</button>
         </form>
-        <p className="signup-link">
-          계정이 없으신가요? <span onClick={() => navigate('/signup')}>회원가입</span>
-        </p>
+        {/* <p className="signup-link"> 회원가입 링크 삭제 */}
       </div>
     </div>
   );

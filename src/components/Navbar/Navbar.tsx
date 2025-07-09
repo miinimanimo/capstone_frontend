@@ -20,7 +20,6 @@ const Navbar: React.FC = () => {
       </ul>
       <div className="navbar-auth">
         <Link to="/login"><button className="login-btn">로그인</button></Link>
-        <Link to="/signup"><button className="signup-btn">회원가입</button></Link>
       </div>
     </nav>
   );

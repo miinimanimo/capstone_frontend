@@ -34,9 +34,6 @@ const Home: React.FC = () => {
           <a href="#" className="nav-link">진단하기</a>
           <a href="#" className="nav-link">통계/분석</a>
         </div>
-        <div className="nav-buttons">
-          <button className="nav-button sign-up">회원가입</button>
-        </div>
       </nav>
 
       <main className="home-main">
@@ -54,9 +51,7 @@ const Home: React.FC = () => {
               <button className="primary-button" onClick={() => navigate('/analysis')}>진단하기</button>
               <button className="secondary-button">서비스 소개</button>
             </div>
-            <p className="membership-text">
-              처음 방문하셨나요? <a href="#" className="sign-up-link">회원가입하기</a>
-            </p>
+            {/* 회원가입 안내 문구 삭제 */}
           </div>
           <div className="hero-image">
             <img src="/eye-exam.png" alt="Eye examination" />

@@ -86,23 +86,6 @@
   text-align: center;
 }
 
-.signup-link {
-  text-align: center;
-  margin-top: 1.5rem;
-  color: #4B5563;
-}
-
-.signup-link span {
-  color: #4B19E5;
-  font-weight: 700;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.signup-link span:hover {
-  color: #7C3AED;
-}
-
 @media (max-width: 768px) {
   .login-box {
     padding: 2rem;

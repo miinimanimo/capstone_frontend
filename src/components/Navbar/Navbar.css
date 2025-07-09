@@ -77,19 +77,6 @@
   transform: translateY(-2px) scale(1.04);
 }
 
-.signup-btn {
-  background: linear-gradient(90deg, #4B19E5 60%, #7C3AED 100%);
-  color: #fff;
-  border: none;
-  box-shadow: 0 4px 16px rgba(75,25,229,0.13);
-}
-
-.signup-btn:hover {
-  background: linear-gradient(90deg, #7C3AED 0%, #4B19E5 100%);
-  box-shadow: 0 8px 32px rgba(75,25,229,0.18);
-  transform: translateY(-2px) scale(1.04);
-}
-
 @media (max-width: 900px) {
   .navbar {
     padding: 1rem 1.2rem;
