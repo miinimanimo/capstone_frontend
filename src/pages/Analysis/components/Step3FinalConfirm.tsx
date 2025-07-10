@@ -32,7 +32,155 @@ interface Step3FinalConfirmProps {
   selectedPixels: { [key: string]: number[] };
   handleLesionSelect: (id: string) => void;
   handleImageKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  gridSize: number;
+  handleGridSizeInc: () => void;
+  handleGridSizeDec: () => void;
+  handleGridSizeChange: (value: number) => void;
+  gridLineWidth: number;
+  handleGridLineWidthInc: () => void;
+  handleGridLineWidthDec: () => void;
+  handleGridLineWidthChange: (value: number) => void;
 }
+
+// 1. GridControlPanel 컴포넌트 추가
+const GridControlPanel: React.FC<{
+  gridSize: number;
+  handleGridSizeInc: () => void;
+  handleGridSizeDec: () => void;
+  handleGridSizeChange: (value: number) => void;
+  gridLineWidth: number;
+  handleGridLineWidthInc: () => void;
+  handleGridLineWidthDec: () => void;
+  handleGridLineWidthChange: (value: number) => void;
+}> = ({
+  gridSize,
+  handleGridSizeInc,
+  handleGridSizeDec,
+  handleGridSizeChange,
+  gridLineWidth,
+  handleGridLineWidthInc,
+  handleGridLineWidthDec,
+  handleGridLineWidthChange
+}) => {
+  // 상태: 입력 중 string 지원
+  const [gridSizeInput, setGridSizeInput] = React.useState<string>(String(gridSize));
+  const [gridLineWidthInput, setGridLineWidthInput] = React.useState<string>(String(gridLineWidth));
+
+  React.useEffect(() => { setGridSizeInput(String(gridSize)); }, [gridSize]);
+  React.useEffect(() => { setGridLineWidthInput(String(gridLineWidth)); }, [gridLineWidth]);
+
+  // 입력창 onChange 핸들러
+  const handleGridSizeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGridSizeInput(e.target.value);
+  };
+  const handleGridLineWidthInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGridLineWidthInput(e.target.value);
+  };
+  // 입력 확정(blur/Enter) 핸들러
+  const commitGridSizeInput = () => {
+    const num = Number(gridSizeInput);
+    if (!isNaN(num) && num >= 10 && num <= 500) {
+      handleGridSizeChange(num);
+    } else if (!isNaN(num) && num < 10) {
+      handleGridSizeChange(10);
+    } else if (!isNaN(num) && num > 500) {
+      handleGridSizeChange(500);
+    } else {
+      setGridSizeInput(String(gridSize)); // 복구
+    }
+  };
+  const commitGridLineWidthInput = () => {
+    const num = Number(gridLineWidthInput);
+    if (!isNaN(num) && num >= 0.1 && num <= 10) {
+      handleGridLineWidthChange(num);
+    } else if (!isNaN(num) && num < 0.1) {
+      handleGridLineWidthChange(0.1);
+    } else if (!isNaN(num) && num > 10) {
+      handleGridLineWidthChange(10);
+    } else {
+      setGridLineWidthInput(String(gridLineWidth)); // 복구
+    }
+  };
+  // 최소화 상태
+  const [minimized, setMinimized] = React.useState(false);
+  if (minimized) {
+    return (
+      <div className="grid-control-panel" style={{
+        position: 'absolute', right: 16, bottom: 16, zIndex: 10,
+        background: 'rgba(255,255,255,0.97)', borderRadius: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        padding: '10px 20px', minWidth: 0, color: '#222', fontSize: '1rem', fontWeight: 500,
+        display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, pointerEvents: 'auto',
+        cursor: 'pointer',
+      }}
+        onClick={() => setMinimized(false)}
+      >
+        <span style={{fontWeight: 700, fontSize: '1.1rem'}}>그리드 조작</span>
+      </div>
+    );
+  }
+  return (
+    <div className="grid-control-panel" style={{
+      position: 'absolute',
+      right: 16,
+      bottom: 16,
+      zIndex: 10,
+      background: 'rgba(255,255,255,0.97)',
+      borderRadius: 16,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+      padding: '16px 20px',
+      minWidth: 200,
+      color: '#222',
+      fontSize: '1rem',
+      fontWeight: 500,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      alignItems: 'flex-start',
+      pointerEvents: 'auto',
+    }}>
+      {/* 최소화 버튼 */}
+      <button onClick={() => setMinimized(true)}
+        style={{
+          position: 'absolute', top: 8, right: 12,
+          minWidth: 56, height: 32, borderRadius: 8,
+          background: 'rgba(255,255,255,0.97)', border: '1px solid #bbb', fontSize: 15, color: '#555', cursor: 'pointer', padding: '0 16px', lineHeight: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'background 0.2s',
+        }}
+        onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.97)')}
+        onMouseOut={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.97)')}
+        title="최소화"
+      >
+        <span style={{fontWeight: 700, fontSize: 15, letterSpacing: 0}}>최소화</span>
+      </button>
+      <div style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 4}}>그리드 조작</div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <span style={{minWidth: 70}}>크기(셀):</span>
+        <button type="button" onClick={handleGridSizeDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+        <input type="number" min={10} max={500} value={gridSizeInput} 
+          onChange={handleGridSizeInputChange}
+          onBlur={commitGridSizeInput}
+          onKeyDown={e => { if (e.key === 'Enter') commitGridSizeInput(); }}
+          style={{width: 60, textAlign: 'center', borderRadius: 6, border: '1px solid #bbb', fontSize: 16, padding: '2px 4px', MozAppearance: 'textfield'}}
+          className="no-spin"
+        />
+        <button type="button" onClick={handleGridSizeInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+      </div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <span style={{minWidth: 70}}>두께(px):</span>
+        <button type="button" onClick={handleGridLineWidthDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+        <input type="number" min={0.1} max={10} step={0.1} value={gridLineWidthInput}
+          onChange={handleGridLineWidthInputChange}
+          onBlur={commitGridLineWidthInput}
+          onKeyDown={e => { if (e.key === 'Enter') commitGridLineWidthInput(); }}
+          style={{width: 60, textAlign: 'center', borderRadius: 6, border: '1px solid #bbb', fontSize: 16, padding: '2px 4px', MozAppearance: 'textfield'}}
+          className="no-spin"
+        />
+        <button type="button" onClick={handleGridLineWidthInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+      </div>
+    </div>
+  );
+};
 
 const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
   selectedEye,
@@ -65,6 +213,14 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
   selectedPixels,
   handleLesionSelect,
   handleImageKeyDown,
+  gridSize,
+  handleGridSizeInc,
+  handleGridSizeDec,
+  handleGridSizeChange,
+  gridLineWidth,
+  handleGridLineWidthInc,
+  handleGridLineWidthDec,
+  handleGridLineWidthChange,
 }) => {
   const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
   const imageDivRef = imageRef as React.RefObject<HTMLDivElement>;
@@ -112,6 +268,7 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
               </div>
               <span className="toggle-text">{showGrid ? 'ON' : 'OFF'}</span>
             </div>
+            {/* 여기서 grid-control-section 등 그리드 조작 UI 완전히 삭제 */}
             <div className="toggle-group">
               <span className="toggle-text">Superpixel로 보기</span>
               <div className={`toggle-switch ${showSuperpixel ? 'active' : ''}`} onClick={() => { setShowSuperpixel(!showSuperpixel); if (!showSuperpixel) setShowGrid(false); }}>
@@ -131,11 +288,19 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             tabIndex={0}
             onKeyDown={handleImageKeyDown}
             onMouseDown={e => {
+              // 그리드 조작 패널 클릭 시 이미지 드래그/선택 무시
+              if ((e.target as HTMLElement).closest('.grid-control-panel')) return;
               handleMouseDown(e);
               if (e.currentTarget) e.currentTarget.focus();
             }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
+            onMouseMove={e => {
+              if ((e.target as HTMLElement).closest('.grid-control-panel')) return;
+              handleMouseMove(e);
+            }}
+            onMouseUp={e => {
+              if ((e.target as HTMLElement).closest('.grid-control-panel')) return;
+              handleMouseUp(e);
+            }}
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
             onMouseEnter={e => {
@@ -169,6 +334,19 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
                 background: 'transparent'
               }}
             />
+            {/* 사진(이미지) 영역 오른쪽 하단에 그리드 조작 패널 표시 */}
+            {showGrid && (
+              <GridControlPanel
+                gridSize={gridSize}
+                handleGridSizeInc={handleGridSizeInc}
+                handleGridSizeDec={handleGridSizeDec}
+                handleGridSizeChange={handleGridSizeChange}
+                gridLineWidth={gridLineWidth}
+                handleGridLineWidthInc={handleGridLineWidthInc}
+                handleGridLineWidthDec={handleGridLineWidthDec}
+                handleGridLineWidthChange={handleGridLineWidthChange}
+              />
+            )}
           </div>
         </div>
         <div className="final-diagnosis-right">

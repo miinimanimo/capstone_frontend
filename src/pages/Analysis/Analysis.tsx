@@ -149,6 +149,24 @@ const Analysis: React.FC = () => {
     }
   };
 
+  // 그리드 크기/두께 상태 추가
+  const [gridSize, setGridSize] = useState<number>(200); // 최소 10, 최대 500
+  const [gridLineWidth, setGridLineWidth] = useState<number>(0.3); // 최소 0.1, 최대 10
+
+  // 그리드 크기 조정 핸들러
+  const handleGridSizeChange = (value: number) => {
+    setGridSize(Math.max(10, Math.min(500, value)));
+  };
+  const handleGridSizeInc = () => handleGridSizeChange(gridSize + 1);
+  const handleGridSizeDec = () => handleGridSizeChange(gridSize - 1);
+
+  // 그리드 두께 조정 핸들러
+  const handleGridLineWidthChange = (value: number) => {
+    setGridLineWidth(Math.max(0.1, Math.min(10, value)));
+  };
+  const handleGridLineWidthInc = () => handleGridLineWidthChange(Number((gridLineWidth + 0.1).toFixed(2)));
+  const handleGridLineWidthDec = () => handleGridLineWidthChange(Number((gridLineWidth - 0.1).toFixed(2)));
+
   // 4) 이미지 확대/축소
   const handleSizeChange = (increment: boolean) => {
     setImageSize((prev) => {
@@ -351,11 +369,14 @@ const Analysis: React.FC = () => {
       ctx.translate(imagePosition.x, imagePosition.y); // 이동
       ctx.translate(-canvas.width / 2, -canvas.height / 2); // 다시 원점
 
-      // 그리드 그리기 (기존 코드)
-      const cellWidth = canvas.width / 200;
-      const cellHeight = canvas.height / 200;
+      // 중심 기준 그리드 그리기
+      const cellWidth = canvas.width / gridSize;
+      const cellHeight = canvas.height / gridSize;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const half = Math.floor(gridSize / 2);
 
-      // 모든 선택된 병변의 픽셀들 그리기
+      // 모든 선택된 병변의 픽셀들 그리기 (기존 방식 유지)
       Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
         const opacity = lesionId === currentLesion ? 0.5 : 0.3;
         
@@ -383,27 +404,28 @@ const Analysis: React.FC = () => {
         }
 
         pixels.forEach(pixelIndex => {
-          const row = Math.floor(pixelIndex / 200);
-          const col = pixelIndex % 200;
-          ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
+          // 중심 기준으로 픽셀 위치 변환
+          const row = Math.floor(pixelIndex / gridSize);
+          const col = pixelIndex % gridSize;
+          const x = centerX + (col - half) * cellWidth;
+          const y = centerY + (row - half) * cellHeight;
+          ctx.fillRect(x, y, cellWidth, cellHeight);
         });
       });
 
-      // 그리드 라인 그리기
+      // 그리드 라인 그리기 (중심 기준)
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.lineWidth = 0.3;
-
-      for (let i = 0; i <= 200; i++) {
+      ctx.lineWidth = gridLineWidth;
+      for (let i = -half; i <= gridSize - half; i++) {
+        // 세로 라인
         ctx.beginPath();
-        ctx.moveTo(i * cellWidth, 0);
-        ctx.lineTo(i * cellWidth, canvas.height);
+        ctx.moveTo(centerX + i * cellWidth, 0);
+        ctx.lineTo(centerX + i * cellWidth, canvas.height);
         ctx.stroke();
-      }
-
-      for (let i = 0; i <= 200; i++) {
+        // 가로 라인
         ctx.beginPath();
-        ctx.moveTo(0, i * cellHeight);
-        ctx.lineTo(canvas.width, i * cellHeight);
+        ctx.moveTo(0, centerY + i * cellHeight);
+        ctx.lineTo(canvas.width, centerY + i * cellHeight);
         ctx.stroke();
       }
       // transform 초기화 (다른 모드 영향 방지)
@@ -557,7 +579,7 @@ const Analysis: React.FC = () => {
       // transform 초기화
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition]);
+  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition, gridSize, gridLineWidth]);
 
   // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: any) => {
@@ -580,12 +602,12 @@ const Analysis: React.FC = () => {
 
     if (showGrid) {
       // 그리드 모드에서의 픽셀 선택
-      const cellWidth = canvas.width / 200;
-      const cellHeight = canvas.height / 200;
+      const cellWidth = canvas.width / gridSize;
+      const cellHeight = canvas.height / gridSize;
 
       const col = Math.floor(x / cellWidth);
       const row = Math.floor(y / cellHeight);
-      const pixelIndex = row * 200 + col;
+      const pixelIndex = row * gridSize + col;
 
       setSelectedPixels(prev => {
         const currentPixels = prev[currentLesion] || [];
@@ -632,7 +654,7 @@ const Analysis: React.FC = () => {
         console.log('[Superpixel 클릭] 이미지 영역 밖 클릭');
       }
     }
-  }, [currentLesion, showGrid, showSuperpixel, superpixelData]);
+  }, [currentLesion, showGrid, showSuperpixel, superpixelData, gridSize]);
 
   // useEffect 수정
   useEffect(() => {
@@ -920,6 +942,15 @@ const Analysis: React.FC = () => {
             selectedPixels={selectedPixels}
             handleLesionSelect={handleLesionSelect}
             handleImageKeyDown={handleImageKeyDown}
+            // 그리드 조작 관련 props 추가
+            gridSize={gridSize}
+            handleGridSizeChange={handleGridSizeChange}
+            handleGridSizeInc={handleGridSizeInc}
+            handleGridSizeDec={handleGridSizeDec}
+            gridLineWidth={gridLineWidth}
+            handleGridLineWidthChange={handleGridLineWidthChange}
+            handleGridLineWidthInc={handleGridLineWidthInc}
+            handleGridLineWidthDec={handleGridLineWidthDec}
           />
         );
       default:
