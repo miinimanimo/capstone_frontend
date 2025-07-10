@@ -698,11 +698,6 @@ const Analysis: React.FC = () => {
   }, [imageSize, imagePosition, drawCanvas]);
 
   // 방향키로 이미지 이동 (3단계에서만, throttle + press & hold 지원)
-  const moveInterval = useRef<NodeJS.Timeout | null>(null);
-  const lastMoveTime = useRef(0);
-  const THROTTLE_MS = 16; // 60fps 기준
-
-  // 아래 추가: 이미지 이동 핸들러를 props로 전달
   const handleImageKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     let dx = 0, dy = 0;
     const moveAmount = 10;
@@ -727,80 +722,7 @@ const Analysis: React.FC = () => {
   };
 
   // 8) 단계별 버튼 렌더링
-  const renderStepButtons = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="step-buttons">
-            <button className="step-button next" onClick={handleNext}>
-              다음 단계
-            </button>
-          </div>
-        );
-      case 2:
-        const step2Confirmed = eyeStatus.step2.left && eyeStatus.step2.right;
-        return (
-          <div className="step-buttons">
-            <button className="step-button prev" onClick={handlePrev}>
-              이전 단계
-            </button>
-            <div className="eye-confirm-buttons">
-              <button
-                className={`eye-button ${eyeStatus.step2.left ? 'confirmed' : ''}`}
-                onClick={() => handleEyeConfirm(2, 'left')}
-              >
-                좌안 확인
-              </button>
-              <button
-                className={`eye-button ${eyeStatus.step2.right ? 'confirmed' : ''}`}
-                onClick={() => handleEyeConfirm(2, 'right')}
-              >
-                우안 확인
-              </button>
-            </div>
-            <button 
-              className={`step-button next ${!step2Confirmed ? 'disabled' : ''}`} 
-              onClick={handleNext}
-              disabled={!step2Confirmed}
-            >
-              다음 단계
-            </button>
-          </div>
-        );
-      case 3:
-        const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
-        return (
-          <div className="step-buttons">
-            <button className="step-button prev" onClick={handlePrev}>
-              이전 단계
-            </button>
-            <div className="eye-confirm-buttons">
-              <button
-                className={`eye-button ${eyeStatus.step3.left ? 'confirmed' : ''}`}
-                onClick={() => handleEyeConfirm(3, 'left')}
-              >
-                좌안 확인
-              </button>
-              <button
-                className={`eye-button ${eyeStatus.step3.right ? 'confirmed' : ''}`}
-                onClick={() => handleEyeConfirm(3, 'right')}
-              >
-                우안 확인
-              </button>
-            </div>
-            <button 
-              className={`step-button next ${!step3Confirmed ? 'disabled' : ''}`}
-              onClick={handleNext}
-              disabled={!step3Confirmed}
-            >
-              완료하기
-            </button>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+  // renderStepButtons 함수 전체 삭제
 
   // 환자 검색 핸들러
   const handleSearch = () => {
