@@ -143,10 +143,6 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             className="main-eye-image"
             ref={imageRef}
             tabIndex={0}
-            style={{
-              touchAction: 'none',
-              cursor: "url('/HollowCircleCursor.png') 16 16"
-            }}
             onKeyDown={handleImageKeyDown}
             onMouseDown={e => {
               // 그리드 조작 패널 클릭 시 이미지 드래그/선택 무시
@@ -166,6 +162,13 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             onWheel={handleWheel}
             onMouseEnter={e => {
               if (e.currentTarget) e.currentTarget.focus();
+            }}
+            style={{
+              touchAction: 'none',
+              // 드래그 중이면 grabbing, 아니면 커스텀 커서
+              ...(imageRef.current && imageRef.current.classList.contains('dragging')
+                ? { cursor: 'grabbing' }
+                : { cursor: `url('/Hollow Circle Cursor.png') 16 16, crosshair` }),
             }}
           >
             <img
@@ -190,27 +193,20 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
                 height: '100%',
                 pointerEvents: 'auto',
                 zIndex: 2,
-                cursor: 'crosshair',
-                background: 'transparent'
+                background: 'transparent',
+                cursor: `url('/Hollow Circle Cursor.png') 16 16, crosshair`,
               }}
             />
             {/* 사진(이미지) 영역 오른쪽 하단에 그리드 조작 패널 표시 */}
             {showGrid && (
-              <div className="grid-control-panel" style={{position: 'absolute', right: 16, bottom: 16, zIndex: 10, background: 'rgba(255,255,255,0.97)', borderRadius: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.18)', padding: '16px 20px', minWidth: 200, color: '#222', fontSize: '1rem', fontWeight: 500, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start', pointerEvents: 'auto'}}>
-                <div style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 4}}>그리드 조작</div>
-                <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-                  <span style={{minWidth: 70}}>셀 크기:</span>
-                  <button type="button" onClick={handleCellSizeDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
-                  <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{cellSize}px</span>
-                  <button type="button" onClick={handleCellSizeInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
-                </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-                  <span style={{minWidth: 70}}>두께:</span>
-                  <button type="button" onClick={handleGridLineWidthDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
-                  <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{gridLineWidth.toFixed(1)}px</span>
-                  <button type="button" onClick={handleGridLineWidthInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
-                </div>
-              </div>
+              <GridControlPanel
+                cellSize={cellSize}
+                handleCellSizeInc={handleCellSizeInc}
+                handleCellSizeDec={handleCellSizeDec}
+                gridLineWidth={gridLineWidth}
+                handleGridLineWidthInc={handleGridLineWidthInc}
+                handleGridLineWidthDec={handleGridLineWidthDec}
+              />
             )}
           </div>
         </div>
@@ -243,6 +239,99 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             <button className="add-lesion-button">병변 추가하기</button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// 1. GridControlPanel 컴포넌트 추가
+const GridControlPanel: React.FC<{
+  cellSize: number;
+  handleCellSizeInc: () => void;
+  handleCellSizeDec: () => void;
+  gridLineWidth: number;
+  handleGridLineWidthInc: () => void;
+  handleGridLineWidthDec: () => void;
+}> = ({
+  cellSize,
+  handleCellSizeInc,
+  handleCellSizeDec,
+  gridLineWidth,
+  handleGridLineWidthInc,
+  handleGridLineWidthDec
+}) => {
+  const [minimized, setMinimized] = React.useState(false);
+  if (minimized) {
+    return (
+      <div className="grid-control-panel" style={{
+        position: 'absolute', right: 16, bottom: 16, zIndex: 10,
+        background: 'rgba(255,255,255,0.97)', borderRadius: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        padding: '10px 20px', minWidth: 0, color: '#222', fontSize: '1rem', fontWeight: 500,
+        display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, pointerEvents: 'auto',
+        cursor: 'pointer',
+      }}
+      >
+        <span style={{fontWeight: 700, fontSize: '1.1rem'}}>그리드 조작</span>
+        <button
+          style={{
+            marginLeft: 8,
+            minWidth: 56, height: 32, borderRadius: 8,
+            background: 'rgba(255,255,255,0.97)', border: '1px solid #bbb', fontSize: 15, color: '#555', cursor: 'pointer', padding: '0 16px', lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.2s', fontWeight: 700
+          }}
+          title="펼치기"
+          onClick={e => { e.stopPropagation(); setMinimized(false); }}
+        >펼치기</button>
+      </div>
+    );
+  }
+  return (
+    <div className="grid-control-panel" style={{
+      position: 'absolute',
+      right: 16,
+      bottom: 16,
+      zIndex: 10,
+      background: 'rgba(255,255,255,0.97)',
+      borderRadius: 16,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+      padding: '16px 20px',
+      minWidth: 200,
+      color: '#222',
+      fontSize: '1rem',
+      fontWeight: 500,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      alignItems: 'flex-start',
+      pointerEvents: 'auto',
+    }}>
+      {/* 최소화 버튼 */}
+      <button onClick={() => setMinimized(true)}
+        style={{
+          position: 'absolute', top: 8, right: 12,
+          minWidth: 56, height: 32, borderRadius: 8,
+          background: 'rgba(255,255,255,0.97)', border: '1px solid #bbb', fontSize: 15, color: '#555', cursor: 'pointer', padding: '0 16px', lineHeight: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'background 0.2s',
+          fontWeight: 700
+        }}
+        title="최소화"
+      >
+        최소화
+      </button>
+      <div style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 4}}>그리드 조작</div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <span style={{minWidth: 70}}>셀 크기:</span>
+        <button type="button" onClick={handleCellSizeDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+        <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{cellSize}px</span>
+        <button type="button" onClick={handleCellSizeInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+      </div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <span style={{minWidth: 70}}>두께:</span>
+        <button type="button" onClick={handleGridLineWidthDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+        <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{gridLineWidth.toFixed(1)}px</span>
+        <button type="button" onClick={handleGridLineWidthInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
       </div>
     </div>
   );
