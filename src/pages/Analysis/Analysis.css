@@ -585,11 +585,9 @@
 }
 
 .main-eye-image {
-  flex: 1;
-  background: black;
   position: relative;
   overflow: hidden;
-  cursor: grab;
+  /* cursor: crosshair; */
   touch-action: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -609,7 +607,7 @@
   height: 100%;
   pointer-events: auto;
   z-index: 2;
-  cursor: crosshair;
+  /* cursor: crosshair; */
   /* 3단계에서만 붉은색 배경, 그 외에는 투명 */
   background: transparent;
 }

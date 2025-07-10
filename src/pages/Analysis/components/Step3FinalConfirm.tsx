@@ -143,6 +143,10 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             className="main-eye-image"
             ref={imageRef}
             tabIndex={0}
+            style={{
+              touchAction: 'none',
+              cursor: "url('/HollowCircleCursor.png') 16 16"
+            }}
             onKeyDown={handleImageKeyDown}
             onMouseDown={e => {
               // 그리드 조작 패널 클릭 시 이미지 드래그/선택 무시
@@ -163,7 +167,6 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             onMouseEnter={e => {
               if (e.currentTarget) e.currentTarget.focus();
             }}
-            style={{ touchAction: 'none' }}
           >
             <img
               src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
