@@ -29,17 +29,15 @@ interface Step3FinalConfirmProps {
   lesionList: { id: string; name: string; status: string }[];
   currentLesion: string | null;
   selectedLesions: string[];
-  selectedPixels: { [key: string]: number[] };
+  selectedPixels: { [key: string]: { dx: number; dy: number }[] };
   handleLesionSelect: (id: string) => void;
   handleImageKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
-  gridSize: number;
-  handleGridSizeInc: () => void;
-  handleGridSizeDec: () => void;
-  handleGridSizeChange: (value: number) => void;
+  cellSize: number;
+  handleCellSizeInc: () => void;
+  handleCellSizeDec: () => void;
   gridLineWidth: number;
   handleGridLineWidthInc: () => void;
   handleGridLineWidthDec: () => void;
-  handleGridLineWidthChange: (value: number) => void;
 }
 
 // 1. GridControlPanel 컴포넌트 추가
@@ -213,14 +211,12 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
   selectedPixels,
   handleLesionSelect,
   handleImageKeyDown,
-  gridSize,
-  handleGridSizeInc,
-  handleGridSizeDec,
-  handleGridSizeChange,
+  cellSize,
+  handleCellSizeInc,
+  handleCellSizeDec,
   gridLineWidth,
   handleGridLineWidthInc,
   handleGridLineWidthDec,
-  handleGridLineWidthChange,
 }) => {
   const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
   const imageDivRef = imageRef as React.RefObject<HTMLDivElement>;
@@ -336,16 +332,21 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             />
             {/* 사진(이미지) 영역 오른쪽 하단에 그리드 조작 패널 표시 */}
             {showGrid && (
-              <GridControlPanel
-                gridSize={gridSize}
-                handleGridSizeInc={handleGridSizeInc}
-                handleGridSizeDec={handleGridSizeDec}
-                handleGridSizeChange={handleGridSizeChange}
-                gridLineWidth={gridLineWidth}
-                handleGridLineWidthInc={handleGridLineWidthInc}
-                handleGridLineWidthDec={handleGridLineWidthDec}
-                handleGridLineWidthChange={handleGridLineWidthChange}
-              />
+              <div className="grid-control-panel" style={{position: 'absolute', right: 16, bottom: 16, zIndex: 10, background: 'rgba(255,255,255,0.97)', borderRadius: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.18)', padding: '16px 20px', minWidth: 200, color: '#222', fontSize: '1rem', fontWeight: 500, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start', pointerEvents: 'auto'}}>
+                <div style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 4}}>그리드 조작</div>
+                <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                  <span style={{minWidth: 70}}>셀 크기:</span>
+                  <button type="button" onClick={handleCellSizeDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+                  <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{cellSize}px</span>
+                  <button type="button" onClick={handleCellSizeInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+                </div>
+                <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                  <span style={{minWidth: 70}}>두께:</span>
+                  <button type="button" onClick={handleGridLineWidthDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+                  <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{gridLineWidth.toFixed(1)}px</span>
+                  <button type="button" onClick={handleGridLineWidthInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+                </div>
+              </div>
             )}
           </div>
         </div>

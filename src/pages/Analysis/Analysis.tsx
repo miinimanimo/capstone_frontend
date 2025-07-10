@@ -61,7 +61,10 @@ const Analysis: React.FC = () => {
   const [allSelected, setAllSelected] = useState<boolean>(false);
 
   // Grid로
-  const [selectedPixels, setSelectedPixels] = useState<{[key: string]: number[]}>({});
+  // 중심점 기준 offset(dx, dy)로 저장
+  // 5x5 픽셀 단위로 선택 정보를 저장
+  const PIXEL_UNIT = 5;
+  const [selectedPixels, setSelectedPixels] = useState<{ [key: string]: Array<{ dx: number, dy: number }> }>({});
   const [currentLesion, setCurrentLesion] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -149,23 +152,19 @@ const Analysis: React.FC = () => {
     }
   };
 
-  // 그리드 크기/두께 상태 추가
-  const [gridSize, setGridSize] = useState<number>(200); // 최소 10, 최대 500
-  const [gridLineWidth, setGridLineWidth] = useState<number>(0.3); // 최소 0.1, 최대 10
+  // 셀 크기 단계별 값
+  const cellSizeSteps = [5, 10, 15, 20, 25, 30];
+  const [cellSizeStep, setCellSizeStep] = useState<number>(1); // 0~4
+  const cellSize = cellSizeSteps[cellSizeStep];
 
-  // 그리드 크기 조정 핸들러
-  const handleGridSizeChange = (value: number) => {
-    setGridSize(Math.max(10, Math.min(500, value)));
-  };
-  const handleGridSizeInc = () => handleGridSizeChange(gridSize + 1);
-  const handleGridSizeDec = () => handleGridSizeChange(gridSize - 1);
+  // 셀 크기 단계 조절 핸들러
+  const handleCellSizeInc = () => setCellSizeStep((prev) => Math.min(prev + 1, cellSizeSteps.length - 1));
+  const handleCellSizeDec = () => setCellSizeStep((prev) => Math.max(prev - 1, 0));
 
-  // 그리드 두께 조정 핸들러
-  const handleGridLineWidthChange = (value: number) => {
-    setGridLineWidth(Math.max(0.1, Math.min(10, value)));
-  };
-  const handleGridLineWidthInc = () => handleGridLineWidthChange(Number((gridLineWidth + 0.1).toFixed(2)));
-  const handleGridLineWidthDec = () => handleGridLineWidthChange(Number((gridLineWidth - 0.1).toFixed(2)));
+  // 두께 0.1 단위 증감
+  const [gridLineWidth, setGridLineWidth] = useState<number>(0.3);
+  const handleGridLineWidthInc = () => setGridLineWidth((prev) => Math.min(Number((prev + 0.1).toFixed(1)), 10));
+  const handleGridLineWidthDec = () => setGridLineWidth((prev) => Math.max(Number((prev - 0.1).toFixed(1)), 0.1));
 
   // 4) 이미지 확대/축소
   const handleSizeChange = (increment: boolean) => {
@@ -369,14 +368,16 @@ const Analysis: React.FC = () => {
       ctx.translate(imagePosition.x, imagePosition.y); // 이동
       ctx.translate(-canvas.width / 2, -canvas.height / 2); // 다시 원점
 
-      // 중심 기준 그리드 그리기
-      const cellWidth = canvas.width / gridSize;
-      const cellHeight = canvas.height / gridSize;
+      // 중심 기준 그리드 그리기 (cellSize 사용)
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const half = Math.floor(gridSize / 2);
+      // 셀 개수 계산 (캔버스 크기/cellSize, 홀수로 맞춤)
+      const gridCountX = Math.ceil(canvas.width / cellSize);
+      const gridCountY = Math.ceil(canvas.height / cellSize);
+      const halfX = Math.floor(gridCountX / 2);
+      const halfY = Math.floor(gridCountY / 2);
 
-      // 모든 선택된 병변의 픽셀들 그리기 (기존 방식 유지)
+      // 병변 픽셀 그리기 (중앙 기준)
       Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
         const opacity = lesionId === currentLesion ? 0.5 : 0.3;
         
@@ -403,32 +404,31 @@ const Analysis: React.FC = () => {
             ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
         }
 
-        pixels.forEach(pixelIndex => {
-          // 중심 기준으로 픽셀 위치 변환
-          const row = Math.floor(pixelIndex / gridSize);
-          const col = pixelIndex % gridSize;
-          const x = centerX + (col - half) * cellWidth;
-          const y = centerY + (row - half) * cellHeight;
-          ctx.fillRect(x, y, cellWidth, cellHeight);
+        // 현재 셀 크기(cellSize)로 그리드 셀을 돌면서, 셀 내부에 선택된 5x5 픽셀이 하나라도 있으면 색칠
+        pixels.forEach(({ dx, dy }) => {
+          const x = centerX + dx * PIXEL_UNIT;
+          const y = centerY + dy * PIXEL_UNIT;
+          ctx.fillRect(x, y, PIXEL_UNIT, PIXEL_UNIT);
         });
       });
 
-      // 그리드 라인 그리기 (중심 기준)
+      // 그리드 라인 그리기 (중심 기준, cellSize)
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.lineWidth = gridLineWidth;
-      for (let i = -half; i <= gridSize - half; i++) {
+      for (let i = -halfX; i <= gridCountX - halfX; i++) {
         // 세로 라인
         ctx.beginPath();
-        ctx.moveTo(centerX + i * cellWidth, 0);
-        ctx.lineTo(centerX + i * cellWidth, canvas.height);
-        ctx.stroke();
-        // 가로 라인
-        ctx.beginPath();
-        ctx.moveTo(0, centerY + i * cellHeight);
-        ctx.lineTo(canvas.width, centerY + i * cellHeight);
+        ctx.moveTo(centerX + i * cellSize, 0);
+        ctx.lineTo(centerX + i * cellSize, canvas.height);
         ctx.stroke();
       }
-      // transform 초기화 (다른 모드 영향 방지)
+      for (let i = -halfY; i <= gridCountY - halfY; i++) {
+        // 가로 라인
+        ctx.beginPath();
+        ctx.moveTo(0, centerY + i * cellSize);
+        ctx.lineTo(canvas.width, centerY + i * cellSize);
+        ctx.stroke();
+      }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
@@ -579,7 +579,7 @@ const Analysis: React.FC = () => {
       // transform 초기화
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition, gridSize, gridLineWidth]);
+  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition, cellSize, gridLineWidth]);
 
   // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: any) => {
@@ -594,41 +594,62 @@ const Analysis: React.FC = () => {
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
 
     if (showGrid) {
-      // 그리드 모드에서의 픽셀 선택
-      const cellWidth = canvas.width / gridSize;
-      const cellHeight = canvas.height / gridSize;
+      const zoomScale = imageSize / 100;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
 
-      const col = Math.floor(x / cellWidth);
-      const row = Math.floor(y / cellHeight);
-      const pixelIndex = row * gridSize + col;
+      // 확대/축소 및 이동을 역으로 계산하여 실제 그리드 좌표를 찾음
+      const transformedX = (clickX - cx) / zoomScale - imagePosition.x + cx;
+      const transformedY = (clickY - cy) / zoomScale - imagePosition.y + cy;
+      
+      const gridCountX = Math.ceil(canvas.width / cellSize);
+      const gridCountY = Math.ceil(canvas.height / cellSize);
+      const halfX = Math.floor(gridCountX / 2);
+      const halfY = Math.floor(gridCountY / 2);
+      
+      const startX = cx - halfX * cellSize;
+      const startY = cy - halfY * cellSize;
 
-      setSelectedPixels(prev => {
-        const currentPixels = prev[currentLesion] || [];
-        const newPixels = { ...prev };
-        if (currentPixels.includes(pixelIndex)) {
-          newPixels[currentLesion] = currentPixels.filter(p => p !== pixelIndex);
-        } else {
-          newPixels[currentLesion] = [...currentPixels, pixelIndex];
+      // 중앙 기준 좌표계를 그리드 인덱스로 변환
+      const col = Math.floor((transformedX - startX) / cellSize);
+      const row = Math.floor((transformedY - startY) / cellSize);
+      if (col >= 0 && col < gridCountX && row >= 0 && row < gridCountY) {
+        // 이 셀에 포함된 5x5 픽셀들의 dx, dy 목록 생성
+        const dx0 = (col - halfX) * (cellSize / PIXEL_UNIT);
+        const dy0 = (row - halfY) * (cellSize / PIXEL_UNIT);
+        const newPixels: { dx: number, dy: number }[] = [];
+        for (let py = 0; py < cellSize / PIXEL_UNIT; py++) {
+          for (let px = 0; px < cellSize / PIXEL_UNIT; px++) {
+            newPixels.push({ dx: dx0 + px, dy: dy0 + py });
+          }
         }
-        return newPixels;
-      });
+        setSelectedPixels(prev => {
+          const currentPixels = prev[currentLesion] || [];
+          // 이미 이 셀의 모든 픽셀이 선택되어 있으면 해제, 아니면 추가
+          const allSelected = newPixels.every(np => currentPixels.some(p => p.dx === np.dx && p.dy === np.dy));
+          let updated;
+          if (allSelected) {
+            updated = currentPixels.filter(p => !newPixels.some(np => np.dx === p.dx && np.dy === p.dy));
+          } else {
+            updated = [...currentPixels, ...newPixels.filter(np => !currentPixels.some(p => p.dx === np.dx && p.dy === np.dy))];
+          }
+          return { ...prev, [currentLesion]: updated };
+        });
+      }
     }
 
     if (showSuperpixel && superpixelData) {
       const { width, height } = superpixelData.imageInfo;
       const { labels } = superpixelData.slicResult;
-      const imgX = Math.floor((x / canvas.width) * width);
-      const imgY = Math.floor((y / canvas.height) * height);
+      const imgX = Math.floor((clickX / canvas.width) * width);
+      const imgY = Math.floor((clickY / canvas.height) * height);
 
       // 디버깅 로그 추가
-      console.log('[Superpixel 클릭 시도]', { x, y, imgX, imgY, width, height });
+      console.log('[Superpixel 클릭 시도]', { x: clickX, y: clickY, imgX, imgY, width, height });
 
       if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
         const selectedLabel = labels[imgY][imgX];
@@ -654,7 +675,7 @@ const Analysis: React.FC = () => {
         console.log('[Superpixel 클릭] 이미지 영역 밖 클릭');
       }
     }
-  }, [currentLesion, showGrid, showSuperpixel, superpixelData, gridSize]);
+  }, [currentLesion, showGrid, showSuperpixel, superpixelData, cellSize, imageSize, imagePosition]);
 
   // useEffect 수정
   useEffect(() => {
@@ -942,13 +963,10 @@ const Analysis: React.FC = () => {
             selectedPixels={selectedPixels}
             handleLesionSelect={handleLesionSelect}
             handleImageKeyDown={handleImageKeyDown}
-            // 그리드 조작 관련 props 추가
-            gridSize={gridSize}
-            handleGridSizeChange={handleGridSizeChange}
-            handleGridSizeInc={handleGridSizeInc}
-            handleGridSizeDec={handleGridSizeDec}
+            cellSize={cellSize}
+            handleCellSizeInc={handleCellSizeInc}
+            handleCellSizeDec={handleCellSizeDec}
             gridLineWidth={gridLineWidth}
-            handleGridLineWidthChange={handleGridLineWidthChange}
             handleGridLineWidthInc={handleGridLineWidthInc}
             handleGridLineWidthDec={handleGridLineWidthDec}
           />
