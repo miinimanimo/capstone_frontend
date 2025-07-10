@@ -1158,8 +1158,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 76px;
-  height: 76px;
+  width: 24px;
+  height: 24px;
   background: none;
   border-radius: 0;
   flex-shrink: 0;
@@ -1321,6 +1321,12 @@
 
 .search-icon svg,
 .info-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.info-icon img,
+.search-icon img {
   width: 24px;
   height: 24px;
 }

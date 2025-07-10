@@ -1,5 +1,6 @@
 import React from 'react';
 import '../Analysis.css';
+import PatientIcon from '../../../components/icons/patient-icon.svg';
 
 interface Step1UploadProps {
   searchQuery: string;
@@ -15,6 +16,19 @@ interface Step1UploadProps {
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>, eye: 'left' | 'right') => void;
   onAnalyze: () => void;
 }
+
+// 검색/AI 아이콘 컴포넌트 추가
+const SearchIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{marginRight:8, verticalAlign:'middle'}} xmlns="http://www.w3.org/2000/svg">
+    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99a1 1 0 0 0 1.41-1.41l-4.99-5zm-6 0C8.01 14 6 11.99 6 9.5S8.01 5 10.5 5 15 7.01 15 9.5 12.99 14 10.5 14z" fill="#fff"/>
+  </svg>
+);
+const AIIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{marginRight:8, verticalAlign:'middle'}} xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10" stroke="#fff" strokeWidth="2" fill="none"/>
+    <path d="M8 15h1v-4H8v4zm3 0h1v-6h-1v6zm3 0h1v-2h-1v2z" fill="#fff"/>
+  </svg>
+);
 
 const Step1Upload: React.FC<Step1UploadProps> = ({
   searchQuery,
@@ -37,7 +51,7 @@ const Step1Upload: React.FC<Step1UploadProps> = ({
         {!selectedPatient && (
           <div className="search-container">
             <div className="search-icon">
-              {/* ...SVG 생략... */}
+              <img src={PatientIcon} alt="환자 아이콘" />
             </div>
             <input
               type="text"
@@ -46,14 +60,16 @@ const Step1Upload: React.FC<Step1UploadProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button className="search-button" onClick={handleSearch}>검색하기</button>
+            <button className="search-button" onClick={handleSearch}><SearchIcon />검색하기</button>
           </div>
         )}
       </div>
       {selectedPatient && (
         <div className="selected-patient-info">
           <div className="info-card">
-            <div className="info-icon">{/* ...SVG 생략... */}</div>
+            <div className="info-icon">
+              <img src={PatientIcon} alt="환자 아이콘" />
+            </div>
             <div className="info-text">
               <span className="date">2025년 2월 3일</span>
               <span className="divider">|</span>
@@ -113,8 +129,7 @@ const Step1Upload: React.FC<Step1UploadProps> = ({
             onClick={onAnalyze}
             disabled={!leftEyeImage || !rightEyeImage}
           >
-            {/* ...SVG 생략... */}
-            AI 분석하기
+            <AIIcon />AI 분석하기
           </button>
         </div>
       )}

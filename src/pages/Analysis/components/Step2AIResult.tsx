@@ -1,5 +1,6 @@
 import React from 'react';
 import '../Analysis.css';
+import PatientIcon from '../../../components/icons/patient-icon.svg';
 
 interface Step2AIResultProps {
   selectedEye: 'left' | 'right';
@@ -41,7 +42,7 @@ const Step2AIResult: React.FC<Step2AIResultProps> = ({
     <div className="step-content step-2">
       <div className="patient-info-header">
         <div className="info-group">
-          <div className="info-icon">{/* ...SVG 생략... */}</div>
+          <div className="info-icon"><img src={PatientIcon} alt="환자 아이콘" /></div>
           <div className="info-text">
             <span className="date">2025년 2월 3일</span>
             <span className="divider">|</span>
