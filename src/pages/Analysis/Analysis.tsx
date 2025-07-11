@@ -360,6 +360,14 @@ const Analysis: React.FC = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (showGrid) {
+      // [추가] SLIC 스타일 초기화 (그리드 모드 진입 시)
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.transform = '';
+      canvas.style.transformOrigin = '';
       // 확대/이동 적용
       ctx.setTransform(1, 0, 0, 1, 0, 0); // 초기화
       const zoomScale = imageSize / 100;
@@ -645,8 +653,42 @@ const Analysis: React.FC = () => {
     if (showSuperpixel && superpixelData) {
       const { width, height } = superpixelData.imageInfo;
       const { labels } = superpixelData.slicResult;
-      const imgX = Math.floor((clickX / canvas.width) * width);
-      const imgY = Math.floor((clickY / canvas.height) * height);
+
+      const container = imageRef.current;
+      if (!container || !originalImageSize) return;
+      const containerRect = container.getBoundingClientRect();
+
+      // drawCanvas에서와 동일하게 scaledWidth, scaledHeight 계산
+      const containerAspectRatio = containerRect.width / containerRect.height;
+      const imageAspectRatio = originalImageSize.width / originalImageSize.height;
+      let scaledWidth, scaledHeight;
+      if (containerAspectRatio > imageAspectRatio) {
+        scaledHeight = containerRect.height;
+        scaledWidth = scaledHeight * imageAspectRatio;
+      } else {
+        scaledWidth = containerRect.width;
+        scaledHeight = scaledWidth / imageAspectRatio;
+      }
+      const zoomScale = imageSize / 100;
+
+      // 1. 클릭 좌표를 컨테이너 기준으로 변환
+      const clickX = e.clientX - containerRect.left;
+      const clickY = e.clientY - containerRect.top;
+
+      // 2. 컨테이너 중심 기준으로 변환
+      let relX = clickX - containerRect.width / 2;
+      let relY = clickY - containerRect.height / 2;
+
+      // 3. zoom, imagePosition 역적용
+      relX = (relX / zoomScale) - imagePosition.x;
+      relY = (relY / zoomScale) - imagePosition.y;
+
+      // 4. scaledWidth/height 기준으로 SLIC 이미지 좌표 변환
+      const slicX = relX + (scaledWidth / 2);
+      const slicY = relY + (scaledHeight / 2);
+
+      const imgX = Math.floor((slicX / scaledWidth) * width);
+      const imgY = Math.floor((slicY / scaledHeight) * height);
 
       // 디버깅 로그 추가
       console.log('[Superpixel 클릭 시도]', { x: clickX, y: clickY, imgX, imgY, width, height });
