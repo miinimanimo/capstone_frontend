@@ -717,7 +717,7 @@ const Analysis: React.FC = () => {
         console.log('[Superpixel 클릭] 이미지 영역 밖 클릭');
       }
     }
-  }, [currentLesion, showGrid, showSuperpixel, superpixelData, cellSize, imageSize, imagePosition]);
+  }, [currentLesion, showGrid, showSuperpixel, superpixelData, cellSize, imageSize, imagePosition, originalImageSize]);
 
   // useEffect 수정
   useEffect(() => {
