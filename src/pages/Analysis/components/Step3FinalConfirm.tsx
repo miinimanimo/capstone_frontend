@@ -39,6 +39,13 @@ interface Step3FinalConfirmProps {
   gridLineWidth: number;
   handleGridLineWidthInc: () => void;
   handleGridLineWidthDec: () => void;
+  // 드래그 셀 선택용 추가
+  isDraggingGrid: boolean;
+  dragGridStart: {x: number, y: number} | null;
+  dragGridEnd: {x: number, y: number} | null;
+  handleGridMouseDown: (e: React.MouseEvent) => void;
+  handleGridMouseMove: (e: React.MouseEvent) => void;
+  handleGridMouseUp: (e: React.MouseEvent) => void;
 }
 
 const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
@@ -78,6 +85,12 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
   gridLineWidth,
   handleGridLineWidthInc,
   handleGridLineWidthDec,
+  isDraggingGrid,
+  dragGridStart,
+  dragGridEnd,
+  handleGridMouseDown,
+  handleGridMouseMove,
+  handleGridMouseUp,
 }) => {
   const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
   const imageDivRef = imageRef as React.RefObject<HTMLDivElement>;
@@ -184,7 +197,10 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             />
             <canvas
               ref={canvasRef}
-              onMouseDown={(e) => handleCanvasClick(e)}
+              onMouseDown={handleGridMouseDown}
+              onMouseMove={handleGridMouseMove}
+              onMouseUp={handleGridMouseUp}
+              onMouseLeave={handleGridMouseUp}
               style={{
                 position: 'absolute',
                 top: 0,

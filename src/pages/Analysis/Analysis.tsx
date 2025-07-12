@@ -91,6 +91,11 @@ const Analysis: React.FC = () => {
 
   const justDraggedRef = useRef(false); // 드래그 직후 클릭 방지용 ref
 
+  // 상태 추가 (useState)
+  const [isDraggingGrid, setIsDraggingGrid] = useState(false);
+  const [dragGridStart, setDragGridStart] = useState<{x: number, y: number} | null>(null);
+  const [dragGridEnd, setDragGridEnd] = useState<{x: number, y: number} | null>(null);
+
   // 1) 사이드바 단계 정의
   const steps = [
     {
@@ -176,6 +181,8 @@ const Analysis: React.FC = () => {
 
   // 5) 마우스 드래그로 이미지 이동
   const handleMouseDown = (e: React.MouseEvent) => {
+    // 3단계에서는 마우스 드래그로 이미지 이동 금지
+    if (currentStep === 3) return;
     // 좌클릭만
     if (e.button !== 0) return;
 
@@ -194,6 +201,8 @@ const Analysis: React.FC = () => {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    // 3단계에서는 마우스 드래그로 이미지 이동 금지
+    if (currentStep === 3) return;
     if (!isDragging || !imageRef.current) return;
 
     e.preventDefault();
@@ -222,6 +231,8 @@ const Analysis: React.FC = () => {
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
+    // 3단계에서는 마우스 드래그로 이미지 이동 금지
+    if (currentStep === 3) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -587,7 +598,22 @@ const Analysis: React.FC = () => {
       // transform 초기화
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition, cellSize, gridLineWidth]);
+
+    // drawCanvas 내 드래그 박스 시각화 추가
+    if (showGrid && isDraggingGrid && dragGridStart && dragGridEnd) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0, 150, 255, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(
+        dragGridStart.x,
+        dragGridStart.y,
+        dragGridEnd.x - dragGridStart.x,
+        dragGridEnd.y - dragGridStart.y
+      );
+      ctx.restore();
+    }
+  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition, cellSize, gridLineWidth, isDraggingGrid, dragGridStart, dragGridEnd]);
 
   // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: any) => {
@@ -636,6 +662,7 @@ const Analysis: React.FC = () => {
           }
         }
         setSelectedPixels(prev => {
+          if (!currentLesion) return prev; // currentLesion이 null이면 아무 작업도 하지 않음
           const currentPixels = prev[currentLesion] || [];
           // 이미 이 셀의 모든 픽셀이 선택되어 있으면 해제, 아니면 추가
           const allSelected = newPixels.every(np => currentPixels.some(p => p.dx === np.dx && p.dy === np.dy));
@@ -850,6 +877,101 @@ const Analysis: React.FC = () => {
     };
   }, [handlePaste]);
 
+  // 드래그 셀 선택/해제용 핸들러 함수 선언
+  const handleGridMouseDown = (e: React.MouseEvent) => {
+    if (!showGrid) return;
+    const rect = canvasRef.current!.getBoundingClientRect();
+    setIsDraggingGrid(true);
+    setDragGridStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setDragGridEnd(null);
+  };
+
+  const handleGridMouseMove = (e: React.MouseEvent) => {
+    if (!showGrid || !isDraggingGrid) return;
+    const rect = canvasRef.current!.getBoundingClientRect();
+    setDragGridEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleGridMouseUp = (e: React.MouseEvent) => {
+    if (!showGrid || !isDraggingGrid || !dragGridStart) return;
+    setIsDraggingGrid(false);
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const end = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setDragGridEnd(end);
+    // 드래그 영역 계산
+    const x1 = Math.min(dragGridStart.x, end.x);
+    const x2 = Math.max(dragGridStart.x, end.x);
+    const y1 = Math.min(dragGridStart.y, end.y);
+    const y2 = Math.max(dragGridStart.y, end.y);
+    // 중심점 기준, 셀 좌표 계산
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const gridCountX = Math.ceil(canvas.width / cellSize);
+    const gridCountY = Math.ceil(canvas.height / cellSize);
+    const halfX = Math.floor(gridCountX / 2);
+    const halfY = Math.floor(gridCountY / 2);
+    const startX = cx - halfX * cellSize;
+    const startY = cy - halfY * cellSize;
+    let newPixels: {dx: number, dy: number}[] = [];
+    // 디버깅용 로그
+    console.log('[드래그 셀 선택] 드래그 박스:', {x1, y1, x2, y2});
+    for (let col = 0; col < gridCountX; col++) {
+      for (let row = 0; row < gridCountY; row++) {
+        // 셀 사각형 좌표 (논리적)
+        const cellLeft = startX + col * cellSize;
+        const cellTop = startY + row * cellSize;
+        const cellRight = cellLeft + cellSize;
+        const cellBottom = cellTop + cellSize;
+        // 실제 화면상 좌표로 변환 (확대/이동/중심 적용)
+        const zoomScale = imageSize / 100;
+        const screenCellLeft = ((cellLeft - cx) * zoomScale) + cx + imagePosition.x * zoomScale;
+        const screenCellTop = ((cellTop - cy) * zoomScale) + cy + imagePosition.y * zoomScale;
+        const screenCellRight = ((cellRight - cx) * zoomScale) + cx + imagePosition.x * zoomScale;
+        const screenCellBottom = ((cellBottom - cy) * zoomScale) + cy + imagePosition.y * zoomScale;
+        // 겹침 판정: 셀 사각형과 드래그 박스가 조금이라도 겹치면 true (논리적 좌표 기준)
+        const overlap = !(cellRight < x1 || cellLeft > x2 || cellBottom < y1 || cellTop > y2);
+        // 겹침 판정: 실제 화면상 좌표 기준
+        const screenOverlap = !(screenCellRight < x1 || screenCellLeft > x2 || screenCellBottom < y1 || screenCellTop > y2);
+        // 디버깅용 로그
+        if (overlap || screenOverlap) {
+          console.log('[셀 좌표 비교] col,row:', col, row,
+            '\n  논리:', {cellLeft, cellTop, cellRight, cellBottom},
+            '\n  화면:', {screenCellLeft, screenCellTop, screenCellRight, screenCellBottom},
+            '\n  논리겹침:', overlap, '화면겹침:', screenOverlap,
+            '\n  dx0,dy0:', (col - halfX) * (cellSize / PIXEL_UNIT), (row - halfY) * (cellSize / PIXEL_UNIT)
+          );
+        }
+        if (screenOverlap) {
+          // dx, dy 계산 (cellSize/PIXEL_UNIT 만큼 반복)
+          const dx0 = (col - halfX) * (cellSize / PIXEL_UNIT);
+          const dy0 = (row - halfY) * (cellSize / PIXEL_UNIT);
+          for (let py = 0; py < cellSize / PIXEL_UNIT; py++) {
+            for (let px = 0; px < cellSize / PIXEL_UNIT; px++) {
+              newPixels.push({ dx: dx0 + px, dy: dy0 + py });
+            }
+          }
+        }
+      }
+    }
+    // 디버깅용 로그
+    console.log('[드래그 셀 선택] 최종 newPixels:', newPixels);
+    setSelectedPixels(prev => {
+      if (!currentLesion) return prev; // currentLesion이 null이면 아무 작업도 하지 않음
+      const currentPixels = prev[currentLesion] || [];
+      // 이미 모두 선택되어 있으면 해제, 아니면 추가
+      const allSelected = newPixels.every((np: {dx: number, dy: number}) => currentPixels.some((p: {dx: number, dy: number}) => p.dx === np.dx && p.dy === np.dy));
+      let updated;
+      if (allSelected) {
+        updated = currentPixels.filter((p: {dx: number, dy: number}) => !newPixels.some((np: {dx: number, dy: number}) => np.dx === p.dx && np.dy === p.dy));
+      } else {
+        updated = [...currentPixels, ...newPixels.filter((np: {dx: number, dy: number}) => !currentPixels.some((p: {dx: number, dy: number}) => p.dx === np.dx && p.dy === np.dy))];
+      }
+      return { ...prev, [currentLesion]: updated };
+    });
+  };
+
   // 10) 단계별 메인 내용 렌더링
   const renderStep = () => {
     switch (currentStep) {
@@ -933,6 +1055,12 @@ const Analysis: React.FC = () => {
             gridLineWidth={gridLineWidth}
             handleGridLineWidthInc={handleGridLineWidthInc}
             handleGridLineWidthDec={handleGridLineWidthDec}
+            isDraggingGrid={isDraggingGrid}
+            dragGridStart={dragGridStart}
+            dragGridEnd={dragGridEnd}
+            handleGridMouseDown={handleGridMouseDown}
+            handleGridMouseMove={handleGridMouseMove}
+            handleGridMouseUp={handleGridMouseUp}
           />
         );
       default:
