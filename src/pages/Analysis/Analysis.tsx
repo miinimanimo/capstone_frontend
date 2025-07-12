@@ -456,17 +456,38 @@ const Analysis: React.FC = () => {
   }, [currentLesion, selectedPixels, superpixelData, imageSize, imagePosition, cellSize, gridLineWidth, isDraggingGrid, dragGridStart, dragGridEnd, selectedSuperpixels, showSuperpixel]);
 
   const drawSLICMode = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    if (!canvas || !superpixelData || !originalImageSize) return;
+    const container = imageRef.current;
+    if (!container || !superpixelData || !originalImageSize) return;
     const { labels } = superpixelData.slicResult;
     const { width: slicWidth, height: slicHeight } = superpixelData.imageInfo;
-    // 캔버스 크기와 스타일을 일치
-    canvas.style.width = `${canvas.width}px`;
-    canvas.style.height = `${canvas.height}px`;
+    const containerRect = container.getBoundingClientRect();
+    const zoomScale = imageSize / 100;
+    // 컨테이너와 이미지 비율 계산
+    const containerAspectRatio = containerRect.width / containerRect.height;
+    const imageAspectRatio = originalImageSize.width / originalImageSize.height;
+    let scaledWidth: number, scaledHeight: number;
+    if (containerAspectRatio > imageAspectRatio) {
+      scaledHeight = containerRect.height;
+      scaledWidth = scaledHeight * imageAspectRatio;
+    } else {
+      scaledWidth = containerRect.width;
+      scaledHeight = scaledWidth / imageAspectRatio;
+    }
+    // 캔버스 크기 및 transform을 이미지와 완전히 동일하게 적용
+    canvas.width = scaledWidth;
+    canvas.height = scaledHeight;
+    canvas.style.width = `${scaledWidth}px`;
+    canvas.style.height = `${scaledHeight}px`;
+    canvas.style.position = 'absolute';
+    canvas.style.top = '50%';
+    canvas.style.left = '50%';
+    canvas.style.transform = `translate(-50%, -50%) scale(${zoomScale}) translate(${imagePosition.x}px, ${imagePosition.y}px)`;
+    canvas.style.transformOrigin = 'center';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // 좌표 변환: 캔버스 픽셀 → SLIC 좌표
-    const scaleX = canvas.width / slicWidth;
-    const scaleY = canvas.height / slicHeight;
+    // SLIC 좌표 변환: scaledWidth/Height 기준
+    const scaleX = scaledWidth / slicWidth;
+    const scaleY = scaledHeight / slicHeight;
     ctx.save();
     ctx.scale(scaleX, scaleY);
     // 선택된 수퍼픽셀 그리기
@@ -502,7 +523,11 @@ const Analysis: React.FC = () => {
       }
     });
     // 수퍼픽셀 경계선 그리기
-    ctx.strokeStyle = `rgba(0, 0, 0, 0.25)`;
+    // 확대 배율에 따라 경계선 alpha 조정 (zoomScale이 커질수록 더 투명)
+    const minAlpha = 0.1;
+    const maxAlpha = 0.25;
+    const zoomAlpha = Math.max(minAlpha, maxAlpha - (zoomScale - 1) * 0.08); // zoomScale 1~3에서 0.25~0.1로 감소
+    ctx.strokeStyle = `rgba(0, 0, 0, ${zoomAlpha})`;
     ctx.lineWidth = 1 / Math.max(scaleX, scaleY);
     for (let y = 0; y < slicHeight - 1; y++) {
       for (let x = 0; x < slicWidth - 1; x++) {
@@ -534,7 +559,7 @@ const Analysis: React.FC = () => {
       );
       ctx.restore();
     }
-  }, [currentLesion, selectedSuperpixels, superpixelData, dragSLICStart, dragSLICEnd, originalImageSize]);
+  }, [currentLesion, selectedSuperpixels, superpixelData, dragSLICStart, dragSLICEnd, imageSize, imagePosition, originalImageSize]);
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -546,7 +571,43 @@ const Analysis: React.FC = () => {
     if (showSuperpixel) drawSLICMode(ctx, canvas);
   }, [showGrid, showSuperpixel, drawGridMode, drawSLICMode]);
 
-  // 캔버스 클릭 핸들러 수정
+  // SLIC 모드에서 transform(zoom, pan) 적용 시 마우스 좌표 역변환 함수
+  function getSLICMousePos(
+    e: React.MouseEvent,
+    canvas: HTMLCanvasElement,
+    container: HTMLDivElement,
+    imageSize: number,
+    imagePosition: { x: number, y: number },
+    originalImageSize: { width: number, height: number }
+  ) {
+    const containerRect = container.getBoundingClientRect();
+    const zoomScale = imageSize / 100;
+    const containerAspectRatio = containerRect.width / containerRect.height;
+    const imageAspectRatio = originalImageSize.width / originalImageSize.height;
+    let scaledWidth: number, scaledHeight: number;
+    if (containerAspectRatio > imageAspectRatio) {
+      scaledHeight = containerRect.height;
+      scaledWidth = scaledHeight * imageAspectRatio;
+    } else {
+      scaledWidth = containerRect.width;
+      scaledHeight = scaledWidth / imageAspectRatio;
+    }
+    const centerX = containerRect.left + containerRect.width / 2;
+    const centerY = containerRect.top + containerRect.height / 2;
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+    let x = mouseX - centerX;
+    let y = mouseY - centerY;
+    x /= zoomScale;
+    y /= zoomScale;
+    x -= imagePosition.x;
+    y -= imagePosition.y;
+    x += scaledWidth / 2;
+    y += scaledHeight / 2;
+    return { x, y, scaledWidth, scaledHeight };
+  }
+
+  // 캔버스 클릭 핸들러 수정 (SLIC 모드 좌표 변환 적용)
   const handleCanvasClick = useCallback((e: any) => {
     console.log('[handleCanvasClick 진입]');
     if (e.preventDefault && typeof e.preventDefault === 'function') e.preventDefault();
@@ -556,14 +617,14 @@ const Analysis: React.FC = () => {
     if (!showGrid && !showSuperpixel) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    if (showSuperpixel && superpixelData) {
+    if (showSuperpixel && superpixelData && originalImageSize && imageRef.current) {
       const { labels } = superpixelData.slicResult;
       const { width, height } = superpixelData.imageInfo;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const imgX = Math.floor((x / canvas.width) * width);
-      const imgY = Math.floor((y / canvas.height) * height);
+      const { x, y, scaledWidth, scaledHeight } = getSLICMousePos(
+        e, canvas, imageRef.current, imageSize, imagePosition, originalImageSize
+      );
+      const imgX = Math.floor((x / scaledWidth) * width);
+      const imgY = Math.floor((y / scaledHeight) * height);
       if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
         const selectedLabel = labels[imgY][imgX];
         if (selectedLabel === -1) return;
@@ -855,48 +916,72 @@ const Analysis: React.FC = () => {
     }
   };
 
-  // --- SLIC 모드 드래그 핸들러 ---
+  // SLIC 라벨별 픽셀 인덱싱 (성능 최적화용)
+  const slicLabelToPixelsRef = useRef<Map<number, Array<{x: number, y: number}>> | null>(null);
+
+  // SLIC 데이터 로드 또는 3단계 진입 시 인덱싱
+  useEffect(() => {
+    if (!superpixelData) return;
+    const { labels } = superpixelData.slicResult;
+    const { width, height } = superpixelData.imageInfo;
+    const labelToPixels = new Map();
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const label = labels[y][x];
+        if (label === -1) continue;
+        if (!labelToPixels.has(label)) labelToPixels.set(label, []);
+        labelToPixels.get(label).push({ x, y });
+      }
+    }
+    slicLabelToPixelsRef.current = labelToPixels;
+    // console.log('SLIC 라벨별 픽셀 인덱싱 완료', labelToPixels);
+  }, [superpixelData]);
+
+  // --- SLIC 모드 드래그 핸들러 --- (좌표 변환 적용)
   const handleSLICMouseDown = (e: React.MouseEvent) => {
     if (!showSuperpixel) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    if (!canvas || !imageRef.current || !originalImageSize) return;
+    const { x, y } = getSLICMousePos(
+      e, canvas, imageRef.current, imageSize, imagePosition, originalImageSize
+    );
     setIsDraggingSLIC(true);
     setDragSLICStart({ x, y });
     setDragSLICEnd(null);
-    console.log('[SLIC] 드래그 시작', { clientX: e.clientX, clientY: e.clientY, rect, x, y });
+    console.log('[SLIC] 드래그 시작', { clientX: e.clientX, clientY: e.clientY, x, y });
   };
   const handleSLICMouseMove = (e: React.MouseEvent) => {
     if (!showSuperpixel || !isDraggingSLIC) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    if (!canvas || !imageRef.current || !originalImageSize) return;
+    const { x, y } = getSLICMousePos(
+      e, canvas, imageRef.current, imageSize, imagePosition, originalImageSize
+    );
     setDragSLICEnd({ x, y });
-    console.log('[SLIC] 드래그 이동', { clientX: e.clientX, clientY: e.clientY, rect, x, y });
+    //console.log('[SLIC] 드래그 이동', { clientX: e.clientX, clientY: e.clientY, x, y });
   };
   const handleSLICMouseUp = (e: React.MouseEvent) => {
     if (!showSuperpixel || !isDraggingSLIC || !dragSLICStart) return;
     setIsDraggingSLIC(false);
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const end = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    if (!canvas || !imageRef.current || !originalImageSize) return;
+    const { x, y } = getSLICMousePos(
+      e, canvas, imageRef.current, imageSize, imagePosition, originalImageSize
+    );
+    const end = { x, y };
     setDragSLICEnd(end);
-    // SLIC 모드 드래그 다중선택/해제
-    if (showSuperpixel && superpixelData && currentLesion && originalImageSize) {
+    // SLIC 모드 드래그 다중선택/해제 (성능 최적화)
+    if (showSuperpixel && superpixelData && currentLesion && originalImageSize && slicLabelToPixelsRef.current) {
       const { width, height } = superpixelData.imageInfo;
       const { labels } = superpixelData.slicResult;
       const x1 = Math.min(dragSLICStart.x, end.x);
       const x2 = Math.max(dragSLICStart.x, end.x);
       const y1 = Math.min(dragSLICStart.y, end.y);
       const y2 = Math.max(dragSLICStart.y, end.y);
+      // 박스 내에 포함된 라벨 집합(성능 최적화)
       const selectedLabels = new Set<number>();
-      for (let py = y1; py <= y2; py++) {
-        for (let px = x1; px <= x2; px++) {
+      for (let py = Math.floor(y1); py <= Math.floor(y2); py++) {
+        for (let px = Math.floor(x1); px <= Math.floor(x2); px++) {
           const imgX = Math.floor((px / canvas.width) * width);
           const imgY = Math.floor((py / canvas.height) * height);
           if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
@@ -905,6 +990,7 @@ const Analysis: React.FC = () => {
           }
         }
       }
+      // 이미 선택된 라벨은 인덱싱된 픽셀을 활용해 빠르게 처리
       setSelectedSuperpixels(prev => {
         const currentSuperpixels = prev[currentLesion] || [];
         const allSelected = Array.from(selectedLabels).every(l => currentSuperpixels.includes(l));
@@ -917,7 +1003,6 @@ const Analysis: React.FC = () => {
         return { ...prev, [currentLesion]: updated };
       });
     }
-    // 드래그 종료 후 박스 초기화 (그리드 모드와 동일)
     setDragSLICStart(null);
     setDragSLICEnd(null);
   };
