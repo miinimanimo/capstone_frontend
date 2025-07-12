@@ -548,7 +548,7 @@ const Analysis: React.FC = () => {
     // 드래그 박스 시각화 (항상 표시)
     if (dragSLICStart && dragSLICEnd) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(196,196,196,0.95)';
+      ctx.strokeStyle = 'rgba(196,196,196,0.8)';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 4]);
       ctx.strokeRect(
