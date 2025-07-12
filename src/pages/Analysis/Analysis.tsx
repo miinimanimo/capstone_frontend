@@ -453,7 +453,7 @@ const Analysis: React.FC = () => {
       );
       ctx.restore();
     }
-  }, [currentLesion, selectedPixels, superpixelData, imageSize, imagePosition, cellSize, gridLineWidth, isDraggingGrid, dragGridStart, dragGridEnd]);
+  }, [currentLesion, selectedPixels, superpixelData, imageSize, imagePosition, cellSize, gridLineWidth, isDraggingGrid, dragGridStart, dragGridEnd, selectedSuperpixels, showSuperpixel]);
 
   const drawSLICMode = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     if (!canvas || !superpixelData || !originalImageSize) return;
@@ -534,7 +534,7 @@ const Analysis: React.FC = () => {
       );
       ctx.restore();
     }
-  }, [currentLesion, selectedSuperpixels, superpixelData, dragSLICStart, dragSLICEnd]);
+  }, [currentLesion, selectedSuperpixels, superpixelData, dragSLICStart, dragSLICEnd, originalImageSize]);
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
