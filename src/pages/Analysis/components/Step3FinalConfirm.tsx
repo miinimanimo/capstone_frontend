@@ -46,6 +46,13 @@ interface Step3FinalConfirmProps {
   handleGridMouseDown: (e: React.MouseEvent) => void;
   handleGridMouseMove: (e: React.MouseEvent) => void;
   handleGridMouseUp: (e: React.MouseEvent) => void;
+  // SLIC 모드 전용 드래그 관련 props 복구
+  isDraggingSLIC: boolean;
+  dragSLICStart: {x: number, y: number} | null;
+  dragSLICEnd: {x: number, y: number} | null;
+  handleSLICMouseDown: (e: React.MouseEvent) => void;
+  handleSLICMouseMove: (e: React.MouseEvent) => void;
+  handleSLICMouseUp: (e: React.MouseEvent) => void;
 }
 
 const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
@@ -91,6 +98,12 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
   handleGridMouseDown,
   handleGridMouseMove,
   handleGridMouseUp,
+  isDraggingSLIC,
+  dragSLICStart,
+  dragSLICEnd,
+  handleSLICMouseDown,
+  handleSLICMouseMove,
+  handleSLICMouseUp,
 }) => {
   const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
   const imageDivRef = imageRef as React.RefObject<HTMLDivElement>;
@@ -181,7 +194,7 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
               // 드래그 중이면 grabbing, 아니면 커스텀 커서
               ...(imageRef.current && imageRef.current.classList.contains('dragging')
                 ? { cursor: 'grabbing' }
-                : { cursor: `url('/Hollow Circle Cursor.png') 16 16, crosshair` }),
+                : { cursor: `url('/Hollow Circle Cursor.png') 16 16` }),
             }}
           >
             <img
@@ -197,10 +210,10 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
             />
             <canvas
               ref={canvasRef}
-              onMouseDown={handleGridMouseDown}
-              onMouseMove={handleGridMouseMove}
-              onMouseUp={handleGridMouseUp}
-              onMouseLeave={handleGridMouseUp}
+              onMouseDown={showGrid ? handleGridMouseDown : showSuperpixel ? handleSLICMouseDown : undefined}
+              onMouseMove={showGrid ? handleGridMouseMove : showSuperpixel ? handleSLICMouseMove : undefined}
+              onMouseUp={showGrid ? handleGridMouseUp : showSuperpixel ? handleSLICMouseUp : undefined}
+              onMouseLeave={showGrid ? handleGridMouseUp : showSuperpixel ? handleSLICMouseUp : undefined}
               style={{
                 position: 'absolute',
                 top: 0,

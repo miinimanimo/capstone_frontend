@@ -92,9 +92,14 @@ const Analysis: React.FC = () => {
   const justDraggedRef = useRef(false); // 드래그 직후 클릭 방지용 ref
 
   // 상태 추가 (useState)
+  // --- 그리드 모드 전용 상태 ---
   const [isDraggingGrid, setIsDraggingGrid] = useState(false);
   const [dragGridStart, setDragGridStart] = useState<{x: number, y: number} | null>(null);
   const [dragGridEnd, setDragGridEnd] = useState<{x: number, y: number} | null>(null);
+  // --- SLIC 모드 전용 상태 ---
+  const [isDraggingSLIC, setIsDraggingSLIC] = useState(false);
+  const [dragSLICStart, setDragSLICStart] = useState<{x: number, y: number} | null>(null);
+  const [dragSLICEnd, setDragSLICEnd] = useState<{x: number, y: number} | null>(null);
 
   // 1) 사이드바 단계 정의
   const steps = [
@@ -347,262 +352,97 @@ const Analysis: React.FC = () => {
   };
 
   // Grid와 Superpixel 그리기 함수
-  const drawCanvas = useCallback(() => {
+  const drawGridMode = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     // 디버깅용 로그
-    console.log('[drawCanvas 호출]', {
+    console.log('[drawGridMode 호출]', {
       currentLesion,
       selectedSuperpixels,
       showSuperpixel,
       superpixelDataLoaded: !!superpixelData
     });
-    const canvas = canvasRef.current;
     const container = imageRef.current;
-    if (!canvas || !container) return;
+    if (!container) return;
 
     // 컨테이너 크기에 맞춰 캔버스 크기 설정
-    const rect = container.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width;
     canvas.height = rect.height;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // 확대/이동 적용
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // 초기화
+    const zoomScale = imageSize / 100;
+    ctx.translate(canvas.width / 2, canvas.height / 2); // 중심 이동
+    ctx.scale(zoomScale, zoomScale); // 확대
+    ctx.translate(imagePosition.x, imagePosition.y); // 이동
+    ctx.translate(-canvas.width / 2, -canvas.height / 2); // 다시 원점
 
-    // 캔버스 초기화
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 중심 기준 그리드 그리기 (cellSize 사용)
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    // 셀 개수 계산 (캔버스 크기/cellSize, 홀수로 맞춤)
+    const gridCountX = Math.ceil(canvas.width / cellSize);
+    const gridCountY = Math.ceil(canvas.height / cellSize);
+    const halfX = Math.floor(gridCountX / 2);
+    const halfY = Math.floor(gridCountY / 2);
 
-    if (showGrid) {
-      // [추가] SLIC 스타일 초기화 (그리드 모드 진입 시)
-      canvas.style.position = 'absolute';
-      canvas.style.top = '0';
-      canvas.style.left = '0';
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.transform = '';
-      canvas.style.transformOrigin = '';
-      // 확대/이동 적용
-      ctx.setTransform(1, 0, 0, 1, 0, 0); // 초기화
-      const zoomScale = imageSize / 100;
-      ctx.translate(canvas.width / 2, canvas.height / 2); // 중심 이동
-      ctx.scale(zoomScale, zoomScale); // 확대
-      ctx.translate(imagePosition.x, imagePosition.y); // 이동
-      ctx.translate(-canvas.width / 2, -canvas.height / 2); // 다시 원점
+    // 병변 픽셀 그리기 (중앙 기준)
+    Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
+      const opacity = lesionId === currentLesion ? 0.5 : 0.3;
+      
+      switch (lesionId) {
+        case 'retinal':
+          ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; // 빨간색
+          break;
+        case 'vitreous':
+          ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`; // 보라색
+          break;
+        case 'preretinal':
+          ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`; // 분홍색
+          break;
+        case 'micro':
+          ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`; // 초록색
+          break;
+        case 'exudates':
+          ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; // 파란색
+          break;
+        case 'cotton':
+          ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`; // 하늘색
+          break;
+        default:
+          ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+      }
 
-      // 중심 기준 그리드 그리기 (cellSize 사용)
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      // 셀 개수 계산 (캔버스 크기/cellSize, 홀수로 맞춤)
-      const gridCountX = Math.ceil(canvas.width / cellSize);
-      const gridCountY = Math.ceil(canvas.height / cellSize);
-      const halfX = Math.floor(gridCountX / 2);
-      const halfY = Math.floor(gridCountY / 2);
-
-      // 병변 픽셀 그리기 (중앙 기준)
-      Object.entries(selectedPixels).forEach(([lesionId, pixels]) => {
-        const opacity = lesionId === currentLesion ? 0.5 : 0.3;
-        
-        switch (lesionId) {
-          case 'retinal':
-            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; // 빨간색
-            break;
-          case 'vitreous':
-            ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`; // 보라색
-            break;
-          case 'preretinal':
-            ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`; // 분홍색
-            break;
-          case 'micro':
-            ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`; // 초록색
-            break;
-          case 'exudates':
-            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; // 파란색
-            break;
-          case 'cotton':
-            ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`; // 하늘색
-            break;
-          default:
-            ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
-        }
-
-        // 현재 셀 크기(cellSize)로 그리드 셀을 돌면서, 셀 내부에 선택된 5x5 픽셀이 하나라도 있으면 색칠
-        pixels.forEach(({ dx, dy }) => {
-          const x = centerX + dx * PIXEL_UNIT;
-          const y = centerY + dy * PIXEL_UNIT;
-          ctx.fillRect(x, y, PIXEL_UNIT, PIXEL_UNIT);
-        });
+      // 현재 셀 크기(cellSize)로 그리드 셀을 돌면서, 셀 내부에 선택된 5x5 픽셀이 하나라도 있으면 색칠
+      pixels.forEach(({ dx, dy }) => {
+        const x = centerX + dx * PIXEL_UNIT;
+        const y = centerY + dy * PIXEL_UNIT;
+        ctx.fillRect(x, y, PIXEL_UNIT, PIXEL_UNIT);
       });
+    });
 
-      // 그리드 라인 그리기 (중심 기준, cellSize)
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.lineWidth = gridLineWidth;
-      for (let i = -halfX; i <= gridCountX - halfX; i++) {
-        // 세로 라인
-        ctx.beginPath();
-        ctx.moveTo(centerX + i * cellSize, 0);
-        ctx.lineTo(centerX + i * cellSize, canvas.height);
-        ctx.stroke();
-      }
-      for (let i = -halfY; i <= gridCountY - halfY; i++) {
-        // 가로 라인
-        ctx.beginPath();
-        ctx.moveTo(0, centerY + i * cellSize);
-        ctx.lineTo(canvas.width, centerY + i * cellSize);
-        ctx.stroke();
-      }
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // 그리드 라인 그리기 (중심 기준, cellSize)
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.lineWidth = gridLineWidth;
+    for (let i = -halfX; i <= gridCountX - halfX; i++) {
+      // 세로 라인
+      ctx.beginPath();
+      ctx.moveTo(centerX + i * cellSize, 0);
+      ctx.lineTo(centerX + i * cellSize, canvas.height);
+      ctx.stroke();
     }
-
-    if (showSuperpixel && superpixelData && originalImageSize) {
-      const { labels } = superpixelData.slicResult;
-      const { width: slicWidth, height: slicHeight } = superpixelData.imageInfo;
-      
-      const imageElement = container?.querySelector('img');
-      if (!imageElement) return;
-
-      const containerRect = container.getBoundingClientRect();
-      const zoomScale = imageSize / 100;
-
-      // 이미지의 실제 스케일 계산
-      const containerAspectRatio = containerRect.width / containerRect.height;
-      const imageAspectRatio = originalImageSize.width / originalImageSize.height;
-      
-      let scaledWidth, scaledHeight;
-      if (containerAspectRatio > imageAspectRatio) {
-        // 세로에 맞춤
-        scaledHeight = containerRect.height;
-        scaledWidth = scaledHeight * imageAspectRatio;
-      } else {
-        // 가로에 맞춤
-        scaledWidth = containerRect.width;
-        scaledHeight = scaledWidth / imageAspectRatio;
-      }
-
-      // 캔버스 크기 설정 (기본 크기)
-      canvas.width = scaledWidth;
-      canvas.height = scaledHeight;
-
-      // 캔버스 스타일 설정
-      canvas.style.position = 'absolute';
-      canvas.style.top = '50%';
-      canvas.style.left = '50%';
-      canvas.style.width = `${scaledWidth}px`;
-      canvas.style.height = `${scaledHeight}px`;
-      canvas.style.transform = `translate(-50%, -50%) scale(${zoomScale}) translate(${imagePosition.x}px, ${imagePosition.y}px)`;
-      canvas.style.transformOrigin = 'center';
-
-      // 디버깅을 위한 크기 정보 출력
-      console.log('SLIC 크기:', { slicWidth, slicHeight });
-      console.log('원본 이미지 크기:', originalImageSize);
-      console.log('컨테이너 크기:', { width: containerRect.width, height: containerRect.height });
-      console.log('스케일된 크기:', { width: scaledWidth, height: scaledHeight });
-      console.log('Zoom level:', zoomScale);
-      console.log('Image position:', imagePosition);
-
-      // 컨텍스트 초기화
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // 좌표 변환 설정
-      const scaleX = scaledWidth / slicWidth;
-      const scaleY = scaledHeight / slicHeight;
-      ctx.scale(scaleX, scaleY);
-
-      // 선택된 수퍼픽셀 그리기
-      Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
-        const opacity = lesionId === currentLesion ? 0.5 : 0.3;
-        
-        switch (lesionId) {
-          case 'retinal':
-            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`;
-            break;
-          case 'vitreous':
-            ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`;
-            break;
-          case 'preretinal':
-            ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`;
-            break;
-          case 'micro':
-            ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`;
-            break;
-          case 'exudates':
-            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`;
-            break;
-          case 'cotton':
-            ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`;
-            break;
-          default:
-            ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
-        }
-
-        // 선택된 수퍼픽셀 채우기
-        for (let y = 0; y < slicHeight; y++) {
-          let currentBatch: { startX: number; width: number; } | null = null;
-
-          for (let x = 0; x < slicWidth; x++) {
-            const label = labels[y][x];
-            
-            // 배경(-1)이 아니고 선택된 수퍼픽셀인 경우에만 처리
-            if (label !== -1 && superpixelIndices.includes(label)) {
-              if (!currentBatch) {
-                currentBatch = { startX: x, width: 1 };
-              } else {
-                currentBatch.width++;
-              }
-            } else if (currentBatch) {
-              // 배치 그리기
-              ctx.fillRect(currentBatch.startX, y, currentBatch.width, 1);
-              currentBatch = null;
-            }
-          }
-
-          // 행의 마지막 배치 처리
-          if (currentBatch) {
-            ctx.fillRect(currentBatch.startX, y, currentBatch.width, 1);
-          }
-        }
-      });
-
-      // 수퍼픽셀 경계선 그리기
-      // 줌이 커질수록 경계선은 얇아지고 투명해짐
-      const lineWidth = Math.max(0.3, 1 / zoomScale);
-      const opacity = Math.max(0.25, 0.4 / Math.sqrt(zoomScale));  // 제곱근을 사용하여 투명도가 너무 빨리 감소하지 않도록 함
-      
-      ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
-      ctx.lineWidth = lineWidth;
-
-      for (let y = 0; y < slicHeight - 1; y++) {
-        for (let x = 0; x < slicWidth - 1; x++) {
-          const currentLabel = labels[y][x];
-          
-          // 배경(-1)이 아닌 경우에만 경계선 그리기
-          if (currentLabel !== -1) {
-            const rightLabel = labels[y][x + 1];
-            const bottomLabel = labels[y + 1][x];
-
-            if (rightLabel !== -1 && currentLabel !== rightLabel) {
-              ctx.beginPath();
-              ctx.moveTo(x + 1, y);
-              ctx.lineTo(x + 1, y + 1);
-              ctx.stroke();
-            }
-
-            if (bottomLabel !== -1 && currentLabel !== bottomLabel) {
-              ctx.beginPath();
-              ctx.moveTo(x, y + 1);
-              ctx.lineTo(x + 1, y + 1);
-              ctx.stroke();
-            }
-          }
-        }
-      }
-
-      // transform 초기화
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    for (let i = -halfY; i <= gridCountY - halfY; i++) {
+      // 가로 라인
+      ctx.beginPath();
+      ctx.moveTo(0, centerY + i * cellSize);
+      ctx.lineTo(canvas.width, centerY + i * cellSize);
+      ctx.stroke();
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // drawCanvas 내 드래그 박스 시각화 추가
-    if (showGrid && isDraggingGrid && dragGridStart && dragGridEnd) {
+    // 드래그 박스 시각화
+    if (isDraggingGrid && dragGridStart && dragGridEnd) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(0, 150, 255, 0.7)';
+      ctx.strokeStyle = 'rgba(196,196,196,0.8)';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 4]);
       ctx.strokeRect(
@@ -613,7 +453,98 @@ const Analysis: React.FC = () => {
       );
       ctx.restore();
     }
-  }, [showGrid, showSuperpixel, selectedPixels, selectedSuperpixels, currentLesion, superpixelData, originalImageSize, imageSize, imagePosition, cellSize, gridLineWidth, isDraggingGrid, dragGridStart, dragGridEnd]);
+  }, [currentLesion, selectedPixels, superpixelData, imageSize, imagePosition, cellSize, gridLineWidth, isDraggingGrid, dragGridStart, dragGridEnd]);
+
+  const drawSLICMode = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    if (!canvas || !superpixelData || !originalImageSize) return;
+    const { labels } = superpixelData.slicResult;
+    const { width: slicWidth, height: slicHeight } = superpixelData.imageInfo;
+    // 캔버스 크기와 스타일을 일치
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 좌표 변환: 캔버스 픽셀 → SLIC 좌표
+    const scaleX = canvas.width / slicWidth;
+    const scaleY = canvas.height / slicHeight;
+    ctx.save();
+    ctx.scale(scaleX, scaleY);
+    // 선택된 수퍼픽셀 그리기
+    Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
+      const opacity = lesionId === currentLesion ? 0.5 : 0.3;
+      switch (lesionId) {
+        case 'retinal': ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; break;
+        case 'vitreous': ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`; break;
+        case 'preretinal': ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`; break;
+        case 'micro': ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`; break;
+        case 'exudates': ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; break;
+        case 'cotton': ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`; break;
+        default: ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+      }
+      for (let y = 0; y < slicHeight; y++) {
+        let currentBatch: { startX: number; width: number; } | null = null;
+        for (let x = 0; x < slicWidth; x++) {
+          const label = labels[y][x];
+          if (label !== -1 && superpixelIndices.includes(label)) {
+            if (!currentBatch) {
+              currentBatch = { startX: x, width: 1 };
+            } else {
+              currentBatch.width++;
+            }
+          } else if (currentBatch) {
+            ctx.fillRect(currentBatch.startX, y, currentBatch.width, 1);
+            currentBatch = null;
+          }
+        }
+        if (currentBatch) {
+          ctx.fillRect(currentBatch.startX, y, currentBatch.width, 1);
+        }
+      }
+    });
+    // 수퍼픽셀 경계선 그리기
+    ctx.strokeStyle = `rgba(0, 0, 0, 0.25)`;
+    ctx.lineWidth = 1 / Math.max(scaleX, scaleY);
+    for (let y = 0; y < slicHeight - 1; y++) {
+      for (let x = 0; x < slicWidth - 1; x++) {
+        const currentLabel = labels[y][x];
+        if (currentLabel !== -1) {
+          const rightLabel = labels[y][x + 1];
+          const bottomLabel = labels[y + 1][x];
+          if (rightLabel !== -1 && currentLabel !== rightLabel) {
+            ctx.beginPath(); ctx.moveTo(x + 1, y); ctx.lineTo(x + 1, y + 1); ctx.stroke();
+          }
+          if (bottomLabel !== -1 && currentLabel !== bottomLabel) {
+            ctx.beginPath(); ctx.moveTo(x, y + 1); ctx.lineTo(x + 1, y + 1); ctx.stroke();
+          }
+        }
+      }
+    }
+    ctx.restore();
+    // 드래그 박스 시각화 (항상 표시)
+    if (dragSLICStart && dragSLICEnd) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(196,196,196,0.95)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(
+        dragSLICStart.x,
+        dragSLICStart.y,
+        dragSLICEnd.x - dragSLICStart.x,
+        dragSLICEnd.y - dragSLICStart.y
+      );
+      ctx.restore();
+    }
+  }, [currentLesion, selectedSuperpixels, superpixelData, dragSLICStart, dragSLICEnd]);
+
+  const drawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (showGrid) drawGridMode(ctx, canvas);
+    if (showSuperpixel) drawSLICMode(ctx, canvas);
+  }, [showGrid, showSuperpixel, drawGridMode, drawSLICMode]);
 
   // 캔버스 클릭 핸들러 수정
   const handleCanvasClick = useCallback((e: any) => {
@@ -623,13 +554,31 @@ const Analysis: React.FC = () => {
     if (justDraggedRef.current) return; // 드래그 직후 클릭 방지
     if (!currentLesion) return;
     if (!showGrid && !showSuperpixel) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    if (showSuperpixel && superpixelData) {
+      const { labels } = superpixelData.slicResult;
+      const { width, height } = superpixelData.imageInfo;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const imgX = Math.floor((x / canvas.width) * width);
+      const imgY = Math.floor((y / canvas.height) * height);
+      if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
+        const selectedLabel = labels[imgY][imgX];
+        if (selectedLabel === -1) return;
+        setSelectedSuperpixels(prev => {
+          const currentSuperpixels = prev[currentLesion] || [];
+          const newSuperpixels = { ...prev };
+          if (currentSuperpixels.includes(selectedLabel)) {
+            newSuperpixels[currentLesion] = currentSuperpixels.filter(l => l !== selectedLabel);
+          } else {
+            newSuperpixels[currentLesion] = [...currentSuperpixels, selectedLabel];
+          }
+          return newSuperpixels;
+        });
+      }
+    }
 
     if (showGrid) {
       const zoomScale = imageSize / 100;
@@ -637,8 +586,8 @@ const Analysis: React.FC = () => {
       const cy = canvas.height / 2;
 
       // 확대/축소 및 이동을 역으로 계산하여 실제 그리드 좌표를 찾음
-      const transformedX = (clickX - cx) / zoomScale - imagePosition.x + cx;
-      const transformedY = (clickY - cy) / zoomScale - imagePosition.y + cy;
+      const transformedX = (e.clientX - cx) / zoomScale - imagePosition.x + cx;
+      const transformedY = (e.clientY - cy) / zoomScale - imagePosition.y + cy;
       
       const gridCountX = Math.ceil(canvas.width / cellSize);
       const gridCountY = Math.ceil(canvas.height / cellSize);
@@ -674,74 +623,6 @@ const Analysis: React.FC = () => {
           }
           return { ...prev, [currentLesion]: updated };
         });
-      }
-    }
-
-    if (showSuperpixel && superpixelData) {
-      const { width, height } = superpixelData.imageInfo;
-      const { labels } = superpixelData.slicResult;
-
-      const container = imageRef.current;
-      if (!container || !originalImageSize) return;
-      const containerRect = container.getBoundingClientRect();
-
-      // drawCanvas에서와 동일하게 scaledWidth, scaledHeight 계산
-      const containerAspectRatio = containerRect.width / containerRect.height;
-      const imageAspectRatio = originalImageSize.width / originalImageSize.height;
-      let scaledWidth, scaledHeight;
-      if (containerAspectRatio > imageAspectRatio) {
-        scaledHeight = containerRect.height;
-        scaledWidth = scaledHeight * imageAspectRatio;
-      } else {
-        scaledWidth = containerRect.width;
-        scaledHeight = scaledWidth / imageAspectRatio;
-      }
-      const zoomScale = imageSize / 100;
-
-      // 1. 클릭 좌표를 컨테이너 기준으로 변환
-      const clickX = e.clientX - containerRect.left;
-      const clickY = e.clientY - containerRect.top;
-
-      // 2. 컨테이너 중심 기준으로 변환
-      let relX = clickX - containerRect.width / 2;
-      let relY = clickY - containerRect.height / 2;
-
-      // 3. zoom, imagePosition 역적용
-      relX = (relX / zoomScale) - imagePosition.x;
-      relY = (relY / zoomScale) - imagePosition.y;
-
-      // 4. scaledWidth/height 기준으로 SLIC 이미지 좌표 변환
-      const slicX = relX + (scaledWidth / 2);
-      const slicY = relY + (scaledHeight / 2);
-
-      const imgX = Math.floor((slicX / scaledWidth) * width);
-      const imgY = Math.floor((slicY / scaledHeight) * height);
-
-      // 디버깅 로그 추가
-      console.log('[Superpixel 클릭 시도]', { x: clickX, y: clickY, imgX, imgY, width, height });
-
-      if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
-        const selectedLabel = labels[imgY][imgX];
-        console.log('[Superpixel 클릭] label:', selectedLabel);
-
-        if (selectedLabel === -1) {
-          console.log('[Superpixel 클릭] 배경(-1) 클릭, 무시');
-          return;
-        }
-
-        setSelectedSuperpixels(prev => {
-          const currentSuperpixels = prev[currentLesion] || [];
-          const newSuperpixels = { ...prev };
-          if (currentSuperpixels.includes(selectedLabel)) {
-            newSuperpixels[currentLesion] = currentSuperpixels.filter(l => l !== selectedLabel);
-          } else {
-            newSuperpixels[currentLesion] = [...currentSuperpixels, selectedLabel];
-          }
-          console.log('[Superpixel 클릭] currentLesion:', currentLesion, 'selectedLabel:', selectedLabel, 'newSuperpixels:', newSuperpixels);
-          return newSuperpixels;
-        });
-      } else {
-        console.log('[Superpixel 클릭] 이미지 영역 밖 클릭');
       }
     }
   }, [currentLesion, showGrid, showSuperpixel, superpixelData, cellSize, imageSize, imagePosition, originalImageSize]);
@@ -878,6 +759,7 @@ const Analysis: React.FC = () => {
   }, [handlePaste]);
 
   // 드래그 셀 선택/해제용 핸들러 함수 선언
+  // --- 그리드 모드 드래그 핸들러 ---
   const handleGridMouseDown = (e: React.MouseEvent) => {
     if (!showGrid) return;
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -885,91 +767,159 @@ const Analysis: React.FC = () => {
     setDragGridStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     setDragGridEnd(null);
   };
-
   const handleGridMouseMove = (e: React.MouseEvent) => {
     if (!showGrid || !isDraggingGrid) return;
     const rect = canvasRef.current!.getBoundingClientRect();
     setDragGridEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
-
   const handleGridMouseUp = (e: React.MouseEvent) => {
     if (!showGrid || !isDraggingGrid || !dragGridStart) return;
     setIsDraggingGrid(false);
     const rect = canvasRef.current!.getBoundingClientRect();
     const end = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     setDragGridEnd(end);
-    // 드래그 영역 계산
-    const x1 = Math.min(dragGridStart.x, end.x);
-    const x2 = Math.max(dragGridStart.x, end.x);
-    const y1 = Math.min(dragGridStart.y, end.y);
-    const y2 = Math.max(dragGridStart.y, end.y);
-    // 중심점 기준, 셀 좌표 계산
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const gridCountX = Math.ceil(canvas.width / cellSize);
-    const gridCountY = Math.ceil(canvas.height / cellSize);
-    const halfX = Math.floor(gridCountX / 2);
-    const halfY = Math.floor(gridCountY / 2);
-    const startX = cx - halfX * cellSize;
-    const startY = cy - halfY * cellSize;
-    let newPixels: {dx: number, dy: number}[] = [];
-    // 디버깅용 로그
-    console.log('[드래그 셀 선택] 드래그 박스:', {x1, y1, x2, y2});
-    for (let col = 0; col < gridCountX; col++) {
-      for (let row = 0; row < gridCountY; row++) {
-        // 셀 사각형 좌표 (논리적)
-        const cellLeft = startX + col * cellSize;
-        const cellTop = startY + row * cellSize;
-        const cellRight = cellLeft + cellSize;
-        const cellBottom = cellTop + cellSize;
-        // 실제 화면상 좌표로 변환 (확대/이동/중심 적용)
-        const zoomScale = imageSize / 100;
-        const screenCellLeft = ((cellLeft - cx) * zoomScale) + cx + imagePosition.x * zoomScale;
-        const screenCellTop = ((cellTop - cy) * zoomScale) + cy + imagePosition.y * zoomScale;
-        const screenCellRight = ((cellRight - cx) * zoomScale) + cx + imagePosition.x * zoomScale;
-        const screenCellBottom = ((cellBottom - cy) * zoomScale) + cy + imagePosition.y * zoomScale;
-        // 겹침 판정: 셀 사각형과 드래그 박스가 조금이라도 겹치면 true (논리적 좌표 기준)
-        const overlap = !(cellRight < x1 || cellLeft > x2 || cellBottom < y1 || cellTop > y2);
-        // 겹침 판정: 실제 화면상 좌표 기준
-        const screenOverlap = !(screenCellRight < x1 || screenCellLeft > x2 || screenCellBottom < y1 || screenCellTop > y2);
-        // 디버깅용 로그
-        if (overlap || screenOverlap) {
-          console.log('[셀 좌표 비교] col,row:', col, row,
-            '\n  논리:', {cellLeft, cellTop, cellRight, cellBottom},
-            '\n  화면:', {screenCellLeft, screenCellTop, screenCellRight, screenCellBottom},
-            '\n  논리겹침:', overlap, '화면겹침:', screenOverlap,
-            '\n  dx0,dy0:', (col - halfX) * (cellSize / PIXEL_UNIT), (row - halfY) * (cellSize / PIXEL_UNIT)
-          );
-        }
-        if (screenOverlap) {
-          // dx, dy 계산 (cellSize/PIXEL_UNIT 만큼 반복)
-          const dx0 = (col - halfX) * (cellSize / PIXEL_UNIT);
-          const dy0 = (row - halfY) * (cellSize / PIXEL_UNIT);
-          for (let py = 0; py < cellSize / PIXEL_UNIT; py++) {
-            for (let px = 0; px < cellSize / PIXEL_UNIT; px++) {
-              newPixels.push({ dx: dx0 + px, dy: dy0 + py });
+    // 기존 그리드 모드 드래그 선택/해제 로직
+    if (showGrid) {
+      // 드래그 영역 계산
+      const x1 = Math.min(dragGridStart.x, end.x);
+      const x2 = Math.max(dragGridStart.x, end.x);
+      const y1 = Math.min(dragGridStart.y, end.y);
+      const y2 = Math.max(dragGridStart.y, end.y);
+      // 중심점 기준, 셀 좌표 계산
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const gridCountX = Math.ceil(canvas.width / cellSize);
+      const gridCountY = Math.ceil(canvas.height / cellSize);
+      const halfX = Math.floor(gridCountX / 2);
+      const halfY = Math.floor(gridCountY / 2);
+      const startX = cx - halfX * cellSize;
+      const startY = cy - halfY * cellSize;
+      let newPixels: {dx: number, dy: number}[] = [];
+      // 디버깅용 로그
+      console.log('[드래그 셀 선택] 드래그 박스:', {x1, y1, x2, y2});
+      for (let col = 0; col < gridCountX; col++) {
+        for (let row = 0; row < gridCountY; row++) {
+          // 셀 사각형 좌표 (논리적)
+          const cellLeft = startX + col * cellSize;
+          const cellTop = startY + row * cellSize;
+          const cellRight = cellLeft + cellSize;
+          const cellBottom = cellTop + cellSize;
+          // 실제 화면상 좌표로 변환 (확대/이동/중심 적용)
+          const zoomScale = imageSize / 100;
+          const screenCellLeft = ((cellLeft - cx) * zoomScale) + cx + imagePosition.x * zoomScale;
+          const screenCellTop = ((cellTop - cy) * zoomScale) + cy + imagePosition.y * zoomScale;
+          const screenCellRight = ((cellRight - cx) * zoomScale) + cx + imagePosition.x * zoomScale;
+          const screenCellBottom = ((cellBottom - cy) * zoomScale) + cy + imagePosition.y * zoomScale;
+          // 겹침 판정: 셀 사각형과 드래그 박스가 조금이라도 겹치면 true (논리적 좌표 기준)
+          const overlap = !(cellRight < x1 || cellLeft > x2 || cellBottom < y1 || cellTop > y2);
+          // 겹침 판정: 실제 화면상 좌표 기준
+          const screenOverlap = !(screenCellRight < x1 || screenCellLeft > x2 || screenCellBottom < y1 || screenCellTop > y2);
+          // 디버깅용 로그
+          if (overlap || screenOverlap) {
+            console.log('[셀 좌표 비교] col,row:', col, row,
+              '\n  논리:', {cellLeft, cellTop, cellRight, cellBottom},
+              '\n  화면:', {screenCellLeft, screenCellTop, screenCellRight, screenCellBottom},
+              '\n  논리겹침:', overlap, '화면겹침:', screenOverlap,
+              '\n  dx0,dy0:', (col - halfX) * (cellSize / PIXEL_UNIT), (row - halfY) * (cellSize / PIXEL_UNIT)
+            );
+          }
+          if (screenOverlap) {
+            // dx, dy 계산 (cellSize/PIXEL_UNIT 만큼 반복)
+            const dx0 = (col - halfX) * (cellSize / PIXEL_UNIT);
+            const dy0 = (row - halfY) * (cellSize / PIXEL_UNIT);
+            for (let py = 0; py < cellSize / PIXEL_UNIT; py++) {
+              for (let px = 0; px < cellSize / PIXEL_UNIT; px++) {
+                newPixels.push({ dx: dx0 + px, dy: dy0 + py });
+              }
             }
           }
         }
       }
+      // 디버깅용 로그
+      console.log('[드래그 셀 선택] 최종 newPixels:', newPixels);
+      setSelectedPixels(prev => {
+        if (!currentLesion) return prev; // currentLesion이 null이면 아무 작업도 하지 않음
+        const currentPixels = prev[currentLesion] || [];
+        // 이미 모두 선택되어 있으면 해제, 아니면 추가
+        const allSelected = newPixels.every((np: {dx: number, dy: number}) => currentPixels.some((p: {dx: number, dy: number}) => p.dx === np.dx && p.dy === np.dy));
+        let updated;
+        if (allSelected) {
+          updated = currentPixels.filter((p: {dx: number, dy: number}) => !newPixels.some((np: {dx: number, dy: number}) => np.dx === p.dx && np.dy === p.dy));
+        } else {
+          updated = [...currentPixels, ...newPixels.filter((np: {dx: number, dy: number}) => !currentPixels.some((p: {dx: number, dy: number}) => p.dx === np.dx && p.dy === np.dy))];
+        }
+        return { ...prev, [currentLesion]: updated };
+      });
     }
-    // 디버깅용 로그
-    console.log('[드래그 셀 선택] 최종 newPixels:', newPixels);
-    setSelectedPixels(prev => {
-      if (!currentLesion) return prev; // currentLesion이 null이면 아무 작업도 하지 않음
-      const currentPixels = prev[currentLesion] || [];
-      // 이미 모두 선택되어 있으면 해제, 아니면 추가
-      const allSelected = newPixels.every((np: {dx: number, dy: number}) => currentPixels.some((p: {dx: number, dy: number}) => p.dx === np.dx && p.dy === np.dy));
-      let updated;
-      if (allSelected) {
-        updated = currentPixels.filter((p: {dx: number, dy: number}) => !newPixels.some((np: {dx: number, dy: number}) => np.dx === p.dx && np.dy === p.dy));
-      } else {
-        updated = [...currentPixels, ...newPixels.filter((np: {dx: number, dy: number}) => !currentPixels.some((p: {dx: number, dy: number}) => p.dx === np.dx && p.dy === np.dy))];
+  };
+
+  // --- SLIC 모드 드래그 핸들러 ---
+  const handleSLICMouseDown = (e: React.MouseEvent) => {
+    if (!showSuperpixel) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setIsDraggingSLIC(true);
+    setDragSLICStart({ x, y });
+    setDragSLICEnd(null);
+    console.log('[SLIC] 드래그 시작', { clientX: e.clientX, clientY: e.clientY, rect, x, y });
+  };
+  const handleSLICMouseMove = (e: React.MouseEvent) => {
+    if (!showSuperpixel || !isDraggingSLIC) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setDragSLICEnd({ x, y });
+    console.log('[SLIC] 드래그 이동', { clientX: e.clientX, clientY: e.clientY, rect, x, y });
+  };
+  const handleSLICMouseUp = (e: React.MouseEvent) => {
+    if (!showSuperpixel || !isDraggingSLIC || !dragSLICStart) return;
+    setIsDraggingSLIC(false);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const end = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setDragSLICEnd(end);
+    // SLIC 모드 드래그 다중선택/해제
+    if (showSuperpixel && superpixelData && currentLesion && originalImageSize) {
+      const { width, height } = superpixelData.imageInfo;
+      const { labels } = superpixelData.slicResult;
+      const x1 = Math.min(dragSLICStart.x, end.x);
+      const x2 = Math.max(dragSLICStart.x, end.x);
+      const y1 = Math.min(dragSLICStart.y, end.y);
+      const y2 = Math.max(dragSLICStart.y, end.y);
+      const selectedLabels = new Set<number>();
+      for (let py = y1; py <= y2; py++) {
+        for (let px = x1; px <= x2; px++) {
+          const imgX = Math.floor((px / canvas.width) * width);
+          const imgY = Math.floor((py / canvas.height) * height);
+          if (imgX >= 0 && imgX < width && imgY >= 0 && imgY < height) {
+            const label = labels[imgY][imgX];
+            if (label !== -1) selectedLabels.add(label);
+          }
+        }
       }
-      return { ...prev, [currentLesion]: updated };
-    });
+      setSelectedSuperpixels(prev => {
+        const currentSuperpixels = prev[currentLesion] || [];
+        const allSelected = Array.from(selectedLabels).every(l => currentSuperpixels.includes(l));
+        let updated;
+        if (allSelected) {
+          updated = currentSuperpixels.filter(l => !selectedLabels.has(l));
+        } else {
+          updated = [...currentSuperpixels, ...Array.from(selectedLabels).filter(l => !currentSuperpixels.includes(l))];
+        }
+        return { ...prev, [currentLesion]: updated };
+      });
+    }
+    // 드래그 종료 후 박스 초기화 (그리드 모드와 동일)
+    setDragSLICStart(null);
+    setDragSLICEnd(null);
   };
 
   // 10) 단계별 메인 내용 렌더링
@@ -1061,6 +1011,13 @@ const Analysis: React.FC = () => {
             handleGridMouseDown={handleGridMouseDown}
             handleGridMouseMove={handleGridMouseMove}
             handleGridMouseUp={handleGridMouseUp}
+            // SLIC 모드 전용 드래그 관련 props 복구
+            isDraggingSLIC={isDraggingSLIC}
+            dragSLICStart={dragSLICStart}
+            dragSLICEnd={dragSLICEnd}
+            handleSLICMouseDown={handleSLICMouseDown}
+            handleSLICMouseMove={handleSLICMouseMove}
+            handleSLICMouseUp={handleSLICMouseUp}
           />
         );
       default:
