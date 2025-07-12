@@ -18,6 +18,7 @@ interface Step2AIResultProps {
   imageSize: number;
   imagePosition: { x: number; y: number };
   handleImageLoad: (e: React.SyntheticEvent<HTMLImageElement>) => void;
+  enabledEyes: { left: boolean; right: boolean };
 }
 
 const Step2AIResult: React.FC<Step2AIResultProps> = ({
@@ -36,8 +37,8 @@ const Step2AIResult: React.FC<Step2AIResultProps> = ({
   imageSize,
   imagePosition,
   handleImageLoad,
+  enabledEyes,
 }) => {
-  const step2Confirmed = eyeStatus.step2.left && eyeStatus.step2.right;
   return (
     <div className="step-content step-2">
       <div className="patient-info-header">
@@ -54,17 +55,25 @@ const Step2AIResult: React.FC<Step2AIResultProps> = ({
         <div className="step-buttons">
           <button className="step-button prev" onClick={handlePrev}>이전 단계</button>
           <div className="eye-confirm-buttons">
-            <button className={`eye-button ${eyeStatus.step2.left ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(2, 'left')}>좌안 확인</button>
-            <button className={`eye-button ${eyeStatus.step2.right ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(2, 'right')}>우안 확인</button>
+            {enabledEyes.left && (
+              <button className={`eye-button ${eyeStatus.step2.left ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(2, 'left')}>좌안 확인</button>
+            )}
+            {enabledEyes.right && (
+              <button className={`eye-button ${eyeStatus.step2.right ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(2, 'right')}>우안 확인</button>
+            )}
           </div>
-          <button className={`step-button next ${!step2Confirmed ? 'disabled' : ''}`} onClick={handleNext} disabled={!step2Confirmed}>다음 단계</button>
+          <button className={`step-button next ${!(enabledEyes.left ? eyeStatus.step2.left : true) || !(enabledEyes.right ? eyeStatus.step2.right : true) ? 'disabled' : ''}`}
+            onClick={handleNext}
+            disabled={!(enabledEyes.left ? eyeStatus.step2.left : true) || !(enabledEyes.right ? eyeStatus.step2.right : true)}>
+            다음 단계
+          </button>
         </div>
       </div>
       <div className="diagnosis-container">
         <div className="combined-diagnosis-container">
           <div className="diagnosis-section">
             <div className="severity-section">
-              <h3>{selectedEye === 'left' ? '좌안' : '우안'} 중증도 AI 진단</h3>
+              <h3>{selectedEye === 'left' ? (enabledEyes.left ? '좌안' : '') : (enabledEyes.right ? '우안' : '')} 중증도 AI 진단</h3>
               <div className="severity-list">
                 <div className="severity-header">
                   <span>중증도</span>
@@ -85,7 +94,7 @@ const Step2AIResult: React.FC<Step2AIResultProps> = ({
         <div className="detection-container">
           <div className="detection-section">
             <div className="detection-header-container">
-              <h3>{selectedEye === 'left' ? '좌안' : '우안'} AI 포착 병변</h3>
+              <h3>{selectedEye === 'left' ? (enabledEyes.left ? '좌안' : '') : (enabledEyes.right ? '우안' : '')} AI 포착 병변</h3>
               <button className={`select-all-button ${allSelected ? 'selected' : ''}`} onClick={handleSelectAll}>모든 병변 선택</button>
             </div>
             <div className="detection-list">
@@ -103,16 +112,30 @@ const Step2AIResult: React.FC<Step2AIResultProps> = ({
             </div>
           </div>
           <div className="detection-image">
-            <img
-              src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
-              alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
-              onLoad={handleImageLoad}
-              style={{
-                transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
-                transformOrigin: 'center center'
-              }}
-              draggable={false}
-            />
+            {(selectedEye === 'left' && enabledEyes.left) && (
+              <img
+                src={leftEyeImage!}
+                alt="좌안 안저 이미지"
+                onLoad={handleImageLoad}
+                style={{
+                  transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                  transformOrigin: 'center center'
+                }}
+                draggable={false}
+              />
+            )}
+            {(selectedEye === 'right' && enabledEyes.right) && (
+              <img
+                src={rightEyeImage!}
+                alt="우안 안저 이미지"
+                onLoad={handleImageLoad}
+                style={{
+                  transform: `scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                  transformOrigin: 'center center'
+                }}
+                draggable={false}
+              />
+            )}
           </div>
         </div>
       </div>

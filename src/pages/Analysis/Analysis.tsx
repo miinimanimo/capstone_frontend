@@ -78,6 +78,22 @@ const Analysis: React.FC = () => {
   const leftEyeInputRef = useRef<HTMLInputElement>(null);
   const rightEyeInputRef = useRef<HTMLInputElement>(null);
 
+  // 삭제 핸들러 추가
+  const removeLeftEyeImage = () => {
+    setLeftEyeImage(null);
+    setEyeStatus(prev => ({
+      ...prev,
+      step1: { ...prev.step1, left: false }
+    }));
+  };
+  const removeRightEyeImage = () => {
+    setRightEyeImage(null);
+    setEyeStatus(prev => ({
+      ...prev,
+      step1: { ...prev.step1, right: false }
+    }));
+  };
+
   // 각 업로드 영역 호버 상태
   const [isHoveringLeftEyeDropzone, setIsHoveringLeftEyeDropzone] = useState<boolean>(false);
   const [isHoveringRightEyeDropzone, setIsHoveringRightEyeDropzone] = useState<boolean>(false);
@@ -85,6 +101,7 @@ const Analysis: React.FC = () => {
   // Superpixel 관련 상태
   const [superpixelData, setSuperpixelData] = useState<SuperpixelData | null>(null);
   const [selectedSuperpixels, setSelectedSuperpixels] = useState<{[key: string]: number[]}>({});
+  const [superpixelOpacity, setSuperpixelOpacity] = useState<number>(0.3);
 
   // 원본 이미지 크기 저장
   const [originalImageSize, setOriginalImageSize] = useState<{width: number, height: number} | null>(null);
@@ -102,26 +119,32 @@ const Analysis: React.FC = () => {
   const [dragSLICEnd, setDragSLICEnd] = useState<{x: number, y: number} | null>(null);
 
   // 1) 사이드바 단계 정의
-  const steps = [
-    {
-      number: 1,
-      title: '사진 업로드',
-      subItems: [],
-    },
-    {
-      number: 2,
-      title: 'AI 결과 확인',
-      subItems: ['좌안 안저', '우안 안저'],
-    },
-    {
-      number: 3,
-      title: '최종 결과 확정',
-      subItems: ['좌안 안저', '우안 안저'],
-    },
-  ];
+  const getSteps = () => {
+    const subItems = [];
+    if (leftEyeImage) subItems.push('좌안 안저');
+    if (rightEyeImage) subItems.push('우안 안저');
+    return [
+      {
+        number: 1,
+        title: '사진 업로드',
+        subItems: [],
+      },
+      {
+        number: 2,
+        title: 'AI 결과 확인',
+        subItems,
+      },
+      {
+        number: 3,
+        title: '최종 결과 확정',
+        subItems,
+      },
+    ];
+  };
 
   // 2) 버튼(이전/다음 단계) 핸들러
   const handleNext = () => {
+    // 2, 3단계 모두 한쪽이라도 업로드되어 있으면 진행 가능
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
@@ -175,6 +198,12 @@ const Analysis: React.FC = () => {
   const [gridLineWidth, setGridLineWidth] = useState<number>(0.3);
   const handleGridLineWidthInc = () => setGridLineWidth((prev) => Math.min(Number((prev + 0.1).toFixed(1)), 10));
   const handleGridLineWidthDec = () => setGridLineWidth((prev) => Math.max(Number((prev - 0.1).toFixed(1)), 0.1));
+// 그리드 모드용 라인 투명도
+const [gridLineOpacity, setGridLineOpacity] = useState<number>(0.5);
+// SLIC(슈퍼픽셀) 모드용 라인 두께
+const [superpixelLineWidth, setSuperpixelLineWidth] = useState<number>(1);
+const handleSuperpixelLineWidthInc = () => setSuperpixelLineWidth((prev) => Math.min(Number((prev + 0.1).toFixed(1)), 10));
+const handleSuperpixelLineWidthDec = () => setSuperpixelLineWidth((prev) => Math.max(Number((prev - 0.1).toFixed(1)), 0.1));
 
   // 4) 이미지 확대/축소
   const handleSizeChange = (increment: boolean) => {
@@ -421,7 +450,7 @@ const Analysis: React.FC = () => {
     });
 
     // 그리드 라인 그리기 (중심 기준, cellSize)
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.strokeStyle = `rgba(0, 0, 0, ${gridLineOpacity})`;
     ctx.lineWidth = gridLineWidth;
     for (let i = -halfX; i <= gridCountX - halfX; i++) {
       // 세로 라인
@@ -453,7 +482,7 @@ const Analysis: React.FC = () => {
       );
       ctx.restore();
     }
-  }, [currentLesion, selectedPixels, superpixelData, imageSize, imagePosition, cellSize, gridLineWidth, isDraggingGrid, dragGridStart, dragGridEnd, selectedSuperpixels, showSuperpixel]);
+  }, [currentLesion, selectedPixels, superpixelData, imageSize, imagePosition, cellSize, gridLineWidth, gridLineOpacity, isDraggingGrid, dragGridStart, dragGridEnd, selectedSuperpixels, showSuperpixel]);
 
   const drawSLICMode = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     const container = imageRef.current;
@@ -492,15 +521,15 @@ const Analysis: React.FC = () => {
     ctx.scale(scaleX, scaleY);
     // 선택된 수퍼픽셀 그리기
     Object.entries(selectedSuperpixels).forEach(([lesionId, superpixelIndices]) => {
-      const opacity = lesionId === currentLesion ? 0.5 : 0.3;
+      const fillOpacity = 0.4; // 픽셀 색칠은 고정 투명도
       switch (lesionId) {
-        case 'retinal': ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; break;
-        case 'vitreous': ctx.fillStyle = `rgba(147, 51, 234, ${opacity})`; break;
-        case 'preretinal': ctx.fillStyle = `rgba(236, 72, 153, ${opacity})`; break;
-        case 'micro': ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`; break;
-        case 'exudates': ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; break;
-        case 'cotton': ctx.fillStyle = `rgba(0, 150, 199, ${opacity})`; break;
-        default: ctx.fillStyle = `rgba(75, 25, 229, ${opacity})`;
+        case 'retinal': ctx.fillStyle = `rgba(239, 68, 68, ${fillOpacity})`; break;
+        case 'vitreous': ctx.fillStyle = `rgba(147, 51, 234, ${fillOpacity})`; break;
+        case 'preretinal': ctx.fillStyle = `rgba(236, 72, 153, ${fillOpacity})`; break;
+        case 'micro': ctx.fillStyle = `rgba(16, 185, 129, ${fillOpacity})`; break;
+        case 'exudates': ctx.fillStyle = `rgba(59, 130, 246, ${fillOpacity})`; break;
+        case 'cotton': ctx.fillStyle = `rgba(0, 150, 199, ${fillOpacity})`; break;
+        default: ctx.fillStyle = `rgba(75, 25, 229, ${fillOpacity})`;
       }
       for (let y = 0; y < slicHeight; y++) {
         let currentBatch: { startX: number; width: number; } | null = null;
@@ -524,11 +553,8 @@ const Analysis: React.FC = () => {
     });
     // 수퍼픽셀 경계선 그리기
     // 확대 배율에 따라 경계선 alpha 조정 (zoomScale이 커질수록 더 투명)
-    const minAlpha = 0.1;
-    const maxAlpha = 0.25;
-    const zoomAlpha = Math.max(minAlpha, maxAlpha - (zoomScale - 1) * 0.08); // zoomScale 1~3에서 0.25~0.1로 감소
-    ctx.strokeStyle = `rgba(0, 0, 0, ${zoomAlpha})`;
-    ctx.lineWidth = 1 / Math.max(scaleX, scaleY);
+    ctx.strokeStyle = `rgba(0, 0, 0, ${superpixelOpacity})`;
+    ctx.lineWidth = superpixelLineWidth;
     for (let y = 0; y < slicHeight - 1; y++) {
       for (let x = 0; x < slicWidth - 1; x++) {
         const currentLabel = labels[y][x];
@@ -559,7 +585,7 @@ const Analysis: React.FC = () => {
       );
       ctx.restore();
     }
-  }, [currentLesion, selectedSuperpixels, superpixelData, dragSLICStart, dragSLICEnd, imageSize, imagePosition, originalImageSize]);
+  }, [selectedSuperpixels, superpixelData, dragSLICStart, dragSLICEnd, imageSize, imagePosition, originalImageSize, superpixelOpacity, superpixelLineWidth]);
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1025,10 +1051,12 @@ const Analysis: React.FC = () => {
             setIsHoveringRightEyeDropzone={setIsHoveringRightEyeDropzone}
             handleImageUpload={handleImageUpload}
             onAnalyze={() => {
-                    if (leftEyeImage && rightEyeImage) {
-                      setCurrentStep(2);
-                    }
-                  }}
+              if (leftEyeImage || rightEyeImage) {
+                setCurrentStep(2);
+              }
+            }}
+            removeLeftEyeImage={removeLeftEyeImage}
+            removeRightEyeImage={removeRightEyeImage}
           />
         );
       case 2:
@@ -1049,7 +1077,8 @@ const Analysis: React.FC = () => {
             imageSize={imageSize}
             imagePosition={imagePosition}
             handleImageLoad={handleImageLoad}
-                  />
+            enabledEyes={{ left: !!leftEyeImage, right: !!rightEyeImage }}
+          />
         );
       case 3:
         return (
@@ -1090,19 +1119,26 @@ const Analysis: React.FC = () => {
             gridLineWidth={gridLineWidth}
             handleGridLineWidthInc={handleGridLineWidthInc}
             handleGridLineWidthDec={handleGridLineWidthDec}
+            gridLineOpacity={gridLineOpacity}
+            setGridLineOpacity={setGridLineOpacity}
+            superpixelLineWidth={superpixelLineWidth}
+            handleSuperpixelLineWidthInc={handleSuperpixelLineWidthInc}
+            handleSuperpixelLineWidthDec={handleSuperpixelLineWidthDec}
             isDraggingGrid={isDraggingGrid}
             dragGridStart={dragGridStart}
             dragGridEnd={dragGridEnd}
             handleGridMouseDown={handleGridMouseDown}
             handleGridMouseMove={handleGridMouseMove}
             handleGridMouseUp={handleGridMouseUp}
-            // SLIC 모드 전용 드래그 관련 props 복구
             isDraggingSLIC={isDraggingSLIC}
             dragSLICStart={dragSLICStart}
             dragSLICEnd={dragSLICEnd}
             handleSLICMouseDown={handleSLICMouseDown}
             handleSLICMouseMove={handleSLICMouseMove}
             handleSLICMouseUp={handleSLICMouseUp}
+            enabledEyes={{ left: !!leftEyeImage, right: !!rightEyeImage }}
+            superpixelOpacity={superpixelOpacity}
+            setSuperpixelOpacity={setSuperpixelOpacity}
           />
         );
       default:
@@ -1115,7 +1151,7 @@ const Analysis: React.FC = () => {
     <div className="analysis-container">
       <div className="analysis-layout">
         {/* 사이드바 */}
-        <StepIndicator steps={steps} currentStep={currentStep} selectedEye={selectedEye} />
+        <StepIndicator steps={getSteps()} currentStep={currentStep} selectedEye={selectedEye} />
 
         {/* 메인 컨텐츠 영역 */}
         <div className="main-content">{renderStep()}</div>

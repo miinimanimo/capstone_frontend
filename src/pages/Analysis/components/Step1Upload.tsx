@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import '../Analysis.css';
 import PatientIcon from '../../../components/icons/patient-icon.svg';
 
@@ -15,6 +15,8 @@ interface Step1UploadProps {
   setIsHoveringRightEyeDropzone: (v: boolean) => void;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>, eye: 'left' | 'right') => void;
   onAnalyze: () => void;
+  removeLeftEyeImage: () => void;
+  removeRightEyeImage: () => void;
 }
 
 // 검색/AI 아이콘 컴포넌트 추가
@@ -43,7 +45,28 @@ const Step1Upload: React.FC<Step1UploadProps> = ({
   setIsHoveringRightEyeDropzone,
   handleImageUpload,
   onAnalyze,
+  removeLeftEyeImage,
+  removeRightEyeImage,
 }) => {
+  // hover 상태 관리
+  const [isHoveringLeft, setIsHoveringLeft] = useState(false);
+  const [isHoveringRight, setIsHoveringRight] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Backspace' || e.key === 'Delete')) {
+        if (isHoveringLeft && leftEyeImage) {
+          removeLeftEyeImage();
+        }
+        if (isHoveringRight && rightEyeImage) {
+          removeRightEyeImage();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isHoveringLeft, isHoveringRight, leftEyeImage, rightEyeImage, removeLeftEyeImage, removeRightEyeImage]);
+
   return (
     <div className="step-content">
       <div className="patient-info-header">
@@ -81,16 +104,17 @@ const Step1Upload: React.FC<Step1UploadProps> = ({
           <div className="upload-section">
             <div className="upload-container">
               <span className="upload-label">왼쪽 안저 사진</span>
-              <div 
+              <div
                 className="upload-box"
                 onClick={() => leftEyeInputRef.current?.click()}
-                onMouseEnter={() => setIsHoveringLeftEyeDropzone(true)}
-                onMouseLeave={() => setIsHoveringLeftEyeDropzone(false)}
+                onMouseEnter={() => { setIsHoveringLeftEyeDropzone(true); setIsHoveringLeft(true); }}
+                onMouseLeave={() => { setIsHoveringLeftEyeDropzone(false); setIsHoveringLeft(false); }}
+                aria-label="왼쪽 안저 사진 업로드 박스"
               >
                 {leftEyeImage ? (
                   <img src={leftEyeImage} alt="왼쪽 안저 사진" />
                 ) : (
-                  <div className="upload-placeholder">{/* ...SVG 생략... */}<span>클릭하거나 붙여넣어 사진 업로드</span></div>
+                  <div className="upload-placeholder"><span>클릭하거나 붙여넣어 사진 업로드</span></div>
                 )}
               </div>
               <input
@@ -103,16 +127,17 @@ const Step1Upload: React.FC<Step1UploadProps> = ({
             </div>
             <div className="upload-container">
               <span className="upload-label">오른쪽 안저 사진</span>
-              <div 
+              <div
                 className="upload-box"
                 onClick={() => rightEyeInputRef.current?.click()}
-                onMouseEnter={() => setIsHoveringRightEyeDropzone(true)}
-                onMouseLeave={() => setIsHoveringRightEyeDropzone(false)}
+                onMouseEnter={() => { setIsHoveringRightEyeDropzone(true); setIsHoveringRight(true); }}
+                onMouseLeave={() => { setIsHoveringRightEyeDropzone(false); setIsHoveringRight(false); }}
+                aria-label="오른쪽 안저 사진 업로드 박스"
               >
                 {rightEyeImage ? (
                   <img src={rightEyeImage} alt="오른쪽 안저 사진" />
                 ) : (
-                  <div className="upload-placeholder">{/* ...SVG 생략... */}<span>클릭하거나 붙여넣어 사진 업로드</span></div>
+                  <div className="upload-placeholder"><span>클릭하거나 붙여넣어 사진 업로드</span></div>
                 )}
               </div>
               <input
@@ -127,7 +152,7 @@ const Step1Upload: React.FC<Step1UploadProps> = ({
           <button
             className="analyze-button"
             onClick={onAnalyze}
-            disabled={!leftEyeImage || !rightEyeImage}
+            disabled={!leftEyeImage && !rightEyeImage}
           >
             <AIIcon />AI 분석하기
           </button>

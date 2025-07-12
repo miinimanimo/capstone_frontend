@@ -53,6 +53,14 @@ interface Step3FinalConfirmProps {
   handleSLICMouseDown: (e: React.MouseEvent) => void;
   handleSLICMouseMove: (e: React.MouseEvent) => void;
   handleSLICMouseUp: (e: React.MouseEvent) => void;
+  enabledEyes: { left: boolean; right: boolean };
+  superpixelOpacity: number;
+  setSuperpixelOpacity: (v: number) => void;
+  superpixelLineWidth: number;
+  handleSuperpixelLineWidthInc: () => void;
+  handleSuperpixelLineWidthDec: () => void;
+  gridLineOpacity: number;
+  setGridLineOpacity: (v: number) => void;
 }
 
 const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
@@ -104,8 +112,15 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
   handleSLICMouseDown,
   handleSLICMouseMove,
   handleSLICMouseUp,
+  enabledEyes,
+  superpixelOpacity,
+  setSuperpixelOpacity,
+  superpixelLineWidth,
+  handleSuperpixelLineWidthInc,
+  handleSuperpixelLineWidthDec,
+  gridLineOpacity,
+  setGridLineOpacity,
 }) => {
-  const step3Confirmed = eyeStatus.step3.left && eyeStatus.step3.right;
   const imageDivRef = imageRef as React.RefObject<HTMLDivElement>;
   React.useEffect(() => {
     if (imageDivRef.current) {
@@ -128,10 +143,18 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
         <div className="step-buttons">
           <button className="step-button prev" onClick={handlePrev}>이전 단계</button>
           <div className="eye-confirm-buttons">
-            <button className={`eye-button ${eyeStatus.step3.left ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(3, 'left')}>좌안 확인</button>
-            <button className={`eye-button ${eyeStatus.step3.right ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(3, 'right')}>우안 확인</button>
+            {enabledEyes.left && (
+              <button className={`eye-button ${eyeStatus.step3.left ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(3, 'left')}>좌안 확인</button>
+            )}
+            {enabledEyes.right && (
+              <button className={`eye-button ${eyeStatus.step3.right ? 'confirmed' : ''}`} onClick={() => handleEyeConfirm(3, 'right')}>우안 확인</button>
+            )}
           </div>
-          <button className={`step-button next ${!step3Confirmed ? 'disabled' : ''}`} onClick={handleNext} disabled={!step3Confirmed}>완료하기</button>
+          <button className={`step-button next ${!(enabledEyes.left ? eyeStatus.step3.left : true) || !(enabledEyes.right ? eyeStatus.step3.right : true) ? 'disabled' : ''}`}
+            onClick={handleNext}
+            disabled={!(enabledEyes.left ? eyeStatus.step3.left : true) || !(enabledEyes.right ? eyeStatus.step3.right : true)}>
+            완료하기
+          </button>
         </div>
       </div>
       <div className="final-diagnosis-container">
@@ -197,17 +220,32 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
                 : { cursor: `url('/Hollow Circle Cursor.png') 16 16` }),
             }}
           >
-            <img
-              src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
-              alt={`${selectedEye === 'left' ? '좌안' : '우안'} 안저 이미지`}
-              onLoad={handleImageLoad}
-              style={{
-                transform: `translate(-50%, -50%) scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
-                transformOrigin: 'center center',
-                transition: undefined // 키보드 이동시 버벅임 방지
-              }}
-              draggable={false}
-            />
+            {(selectedEye === 'left' && enabledEyes.left) && (
+              <img
+                src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
+                alt="좌안 안저 이미지"
+                onLoad={handleImageLoad}
+                style={{
+                  transform: `translate(-50%, -50%) scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                  transformOrigin: 'center center',
+                  transition: undefined
+                }}
+                draggable={false}
+              />
+            )}
+            {(selectedEye === 'right' && enabledEyes.right) && (
+              <img
+                src="https://miinimanimo.github.io/capstone_frontend/images/eye.jpeg"
+                alt="우안 안저 이미지"
+                onLoad={handleImageLoad}
+                style={{
+                  transform: `translate(-50%, -50%) scale(${Math.round(imageSize) / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
+                  transformOrigin: 'center center',
+                  transition: undefined
+                }}
+                draggable={false}
+              />
+            )}
             <canvas
               ref={canvasRef}
               onMouseDown={showGrid ? handleGridMouseDown : showSuperpixel ? handleSLICMouseDown : undefined}
@@ -235,6 +273,17 @@ const Step3FinalConfirm: React.FC<Step3FinalConfirmProps> = ({
                 gridLineWidth={gridLineWidth}
                 handleGridLineWidthInc={handleGridLineWidthInc}
                 handleGridLineWidthDec={handleGridLineWidthDec}
+                gridLineOpacity={gridLineOpacity}
+                setGridLineOpacity={setGridLineOpacity}
+              />
+            )}
+            {showSuperpixel && (
+              <SuperpixelControlPanel
+                superpixelLineWidth={superpixelLineWidth}
+                handleSuperpixelLineWidthInc={handleSuperpixelLineWidthInc}
+                handleSuperpixelLineWidthDec={handleSuperpixelLineWidthDec}
+                superpixelOpacity={superpixelOpacity}
+                setSuperpixelOpacity={setSuperpixelOpacity}
               />
             )}
           </div>
@@ -281,13 +330,17 @@ const GridControlPanel: React.FC<{
   gridLineWidth: number;
   handleGridLineWidthInc: () => void;
   handleGridLineWidthDec: () => void;
+  gridLineOpacity: number;
+  setGridLineOpacity: (v: number) => void;
 }> = ({
   cellSize,
   handleCellSizeInc,
   handleCellSizeDec,
   gridLineWidth,
   handleGridLineWidthInc,
-  handleGridLineWidthDec
+  handleGridLineWidthDec,
+  gridLineOpacity,
+  setGridLineOpacity
 }) => {
   const [minimized, setMinimized] = React.useState(false);
   if (minimized) {
@@ -346,9 +399,7 @@ const GridControlPanel: React.FC<{
           fontWeight: 700
         }}
         title="최소화"
-      >
-        최소화
-      </button>
+      >최소화</button>
       <div style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 4}}>그리드 조작</div>
       <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
         <span style={{minWidth: 70}}>셀 크기:</span>
@@ -361,6 +412,101 @@ const GridControlPanel: React.FC<{
         <button type="button" onClick={handleGridLineWidthDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
         <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{gridLineWidth.toFixed(1)}px</span>
         <button type="button" onClick={handleGridLineWidthInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+      </div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <span style={{minWidth: 70}}>투명도:</span>
+        <button type="button" onClick={() => setGridLineOpacity(Math.max(0.05, +(gridLineOpacity - 0.05).toFixed(2)))} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+        <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{(gridLineOpacity * 100).toFixed(0)}%</span>
+        <button type="button" onClick={() => setGridLineOpacity(Math.min(1, +(gridLineOpacity + 0.05).toFixed(2)))} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+      </div>
+    </div>
+  );
+};
+
+// SLIC(Superpixel) 모드용 컨트롤 패널
+const SuperpixelControlPanel: React.FC<{
+  superpixelLineWidth: number;
+  handleSuperpixelLineWidthInc: () => void;
+  handleSuperpixelLineWidthDec: () => void;
+  superpixelOpacity: number;
+  setSuperpixelOpacity: (v: number) => void;
+}> = ({
+  superpixelLineWidth,
+  handleSuperpixelLineWidthInc,
+  handleSuperpixelLineWidthDec,
+  superpixelOpacity,
+  setSuperpixelOpacity
+}) => {
+  const [minimized, setMinimized] = React.useState(false);
+  if (minimized) {
+    return (
+      <div className="grid-control-panel" style={{
+        position: 'absolute', right: 16, bottom: 16, zIndex: 10,
+        background: 'rgba(255,255,255,0.97)', borderRadius: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        padding: '10px 20px', minWidth: 0, color: '#222', fontSize: '1rem', fontWeight: 500,
+        display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, pointerEvents: 'auto',
+        cursor: 'pointer',
+      }}
+      >
+        <span style={{fontWeight: 700, fontSize: '1.1rem'}}>Superpixel 조작</span>
+        <button
+          style={{
+            marginLeft: 8,
+            minWidth: 56, height: 32, borderRadius: 8,
+            background: 'rgba(255,255,255,0.97)', border: '1px solid #bbb', fontSize: 15, color: '#555', cursor: 'pointer', padding: '0 16px', lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.2s', fontWeight: 700
+          }}
+          title="펼치기"
+          onClick={e => { e.stopPropagation(); setMinimized(false); }}
+        >펼치기</button>
+      </div>
+    );
+  }
+  return (
+    <div className="grid-control-panel" style={{
+      position: 'absolute',
+      right: 16,
+      bottom: 16,
+      zIndex: 10,
+      background: 'rgba(255,255,255,0.97)',
+      borderRadius: 16,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+      padding: '16px 20px',
+      minWidth: 200,
+      color: '#222',
+      fontSize: '1rem',
+      fontWeight: 500,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      alignItems: 'flex-start',
+      pointerEvents: 'auto',
+    }}>
+      {/* 최소화 버튼 */}
+      <button onClick={() => setMinimized(true)}
+        style={{
+          position: 'absolute', top: 8, right: 12,
+          minWidth: 56, height: 32, borderRadius: 8,
+          background: 'rgba(255,255,255,0.97)', border: '1px solid #bbb', fontSize: 15, color: '#555', cursor: 'pointer', padding: '0 16px', lineHeight: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'background 0.2s',
+          fontWeight: 700
+        }}
+        title="최소화"
+      >최소화</button>
+      <div style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 4}}>Superpixel 조작</div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <span style={{minWidth: 70}}>두께:</span>
+        <button type="button" onClick={handleSuperpixelLineWidthDec} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+        <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{superpixelLineWidth.toFixed(1)}px</span>
+        <button type="button" onClick={handleSuperpixelLineWidthInc} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
+      </div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <span style={{minWidth: 70}}>투명도:</span>
+        <button type="button" onClick={() => setSuperpixelOpacity(Math.max(0.05, +(superpixelOpacity - 0.05).toFixed(2)))} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>-</button>
+        <span style={{width: 48, textAlign: 'center', fontWeight: 600}}>{(superpixelOpacity * 100).toFixed(0)}%</span>
+        <button type="button" onClick={() => setSuperpixelOpacity(Math.min(1, +(superpixelOpacity + 0.05).toFixed(2)))} style={{width: 28, height: 28, fontSize: 18, borderRadius: 6, border: '1px solid #bbb', background: '#fff', color: '#4B19E5'}}>+</button>
       </div>
     </div>
   );

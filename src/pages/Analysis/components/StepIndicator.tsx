@@ -24,7 +24,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, selec
               <div className={`step-number ${isActive ? 'active' : ''}`}>{step.number}</div>
               <span className="step-title">{step.title}</span>
             </div>
-            {isActive && step.subItems.length > 0 && (
+            {isActive && step.subItems && step.subItems.length > 0 && (
               <div className="step-subitems">
                 {step.subItems.map((item, index) => {
                   const isLeftEye = item.includes('좌안');
